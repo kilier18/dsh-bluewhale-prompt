@@ -94,6 +94,15 @@ locale/               中英文案
 
 日常操作、补丁、唱歌链路全套在 `D:\DSH使用策略\手册\10-蓝鲸桌宠.md`（本机手册，不入库）。
 
+## 安全边界（0.3.1）
+
+插件接口（`127.0.0.1:18100`）只给本机和桌宠用，**不要映射到公网**：
+
+- CORS 只放行无 `Origin`、`null`、`file:` / `app:` / `chrome-extension:` 和本机 host，其余 403；所以浏览器里直接开 `http://127.0.0.1:18100/dafei/voice` 能看到 JSON，别的站点打不进来。
+- 请求体上限 16MB（413）。
+- `/dafei/act` 的 `motion` 只认 `Animation/<名字>.motion3.json`（禁 `../`），`emotion` / `expression` 走白名单正则，`say` 截 `MAX_CHARS`；推送暂停时返回 409。
+- `POST /dafei/pause {on:true}` 除了停推送，还会清掉已排队的口播，录长动作才不会被下一句打断。
+
 ## License
 
 MIT，见 `LICENSE`。上游 blue whale / proj-airi / AIRI 相关部分的版权归原作者。

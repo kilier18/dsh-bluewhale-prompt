@@ -6,13 +6,16 @@ import { log } from './state.js'
 
 function runPowerShell(script) {
   return new Promise((resolve) => {
-    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 10000, windowsHide: true }, (err, stdout) => resolve(err ? '' : stdout))
+    // 失败返回 null：区分「查不到」和「没开」，否则查不到就当成没开、再 spawn 一只抢端口
+    execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 10000, windowsHide: true }, (err, stdout) => resolve(err ? null : stdout))
   })
 }
 
 async function isRunning(exe) {
   const out = await runPowerShell(`(Get-Process -Name airi -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq '${exe.replace(/'/g, "''")}' } | Measure-Object).Count`)
-  return Number(out.trim()) > 0
+  if (out === null) return null // 探测失败：状态未知
+  const n = Number(String(out).trim())
+  return Number.isFinite(n) ? n > 0 : null
 }
 
 // DSH 的插件运行在「Electron 当 Node 用」的进程里（ELECTRON_RUN_AS_NODE=1）
@@ -31,7 +34,9 @@ export function createPetLauncher(cfg) {
   return {
     async start() {
       if (!fs.existsSync(cfg.airiExe)) return log('找不到桌宠程序：', cfg.airiExe)
-      if (await isRunning(cfg.airiExe)) return log('桌宠已经开着了')
+      const running = await isRunning(cfg.airiExe)
+      if (running === null) return log('查不到桌宠进程状态，这次不自动打开（避免双开抢端口）')
+      if (running) return log('桌宠已经开着了')
       child = spawn(cfg.airiExe, [], { detached: true, stdio: 'ignore', windowsHide: false, env: cleanEnv() })
       child.on('error', (e) => log('打开桌宠失败：', e))
       child.unref()

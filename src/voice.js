@@ -153,6 +153,14 @@ export function speak(text, opts = {}) {
 }
 
 // 现在有没有在念（给 /dafei/voice 这类状态接口用）
+// 暂停/录制保护：把排着队还没念的那句清掉（正在念的那句不掐，等它自己结束）
+export function clearQueue() {
+  const had = queued
+  queued = ''
+  if (had) log('⏹ 清掉队列里没念的那句：' + had.slice(0, 40))
+  return !!had
+}
+
 export function speaking() {
   return {
     busy: !!inflight,

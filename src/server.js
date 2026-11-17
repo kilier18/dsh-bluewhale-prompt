@@ -20,11 +20,19 @@ import { localHelperReply, forwardToDeepSeek } from './helpers.js'
 import { isVisionRequest, describeImages } from './vision.js'
 import { createFollowups, PENDING_MARK } from './followups.js'
 import { petMessage } from './pet-rules.js'
-import { speak, spokenLine, speaking, voiceEnabled, rvcOk, scriptOk, VOICE_SCRIPT, MAX_CHARS } from './voice.js'
+import { speak, spokenLine, speaking, voiceEnabled, rvcOk, scriptOk, clearQueue, VOICE_SCRIPT, MAX_CHARS } from './voice.js'
 
 const MODEL = 'dsh'
 // aurabot 等插件让角色「不说话」时写的标记
 const SILENCE = /^\s*[[［(（]沉默[\]］)）]\s*$/
+// /dafei/act 白名单：motion 只认 Animation/<名字>.motion3.json，挡掉 ../ 之类路径穿越
+const MOTION_RE = /^Animation\/[^/\\]{1,80}\.motion3\.json$/
+const EMOTION_RE = /^[A-Za-z\u4e00-\u9fa5_-]{1,32}$/
+const EXPR_RE = /^[A-Za-z0-9\u4e00-\u9fa5_-]{1,40}$/
+const clampDelay = (v) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? Math.min(60, Math.max(0, Math.round(n * 10) / 10)) : 0
+}
 
 export function createServer(ctx, cfg) {
   // 角色的原始回复 → 桌宠念的文字（带动作标记）；`|||` 是 aurabot 分条的写法，当成一句结束
@@ -59,9 +67,14 @@ export function createServer(ctx, cfg) {
     log('← 收到：' + text)
     followups.open()
     try {
-      const reply = speakable(await enqueue(() => ask(ctx, cfg, petMessage(text, cfg))))
+      const raw = await enqueue(() => ask(ctx, cfg, petMessage(text, cfg)))
+      let reply = speakable(raw)
+      // 整段只有 [说] 口播块（或只剩标记）时，气泡就显示要念的那句，别退到"我刚刚走神了"
+      if (!reply) reply = spokenLine(raw)
       followups.forget(reply)
       log(`→ 回复（${((Date.now() - started) / 1000).toFixed(1)}s）：${reply}`)
+      // 「沉默」是角色主动不说话：返回空串，别用兜底话术盖掉
+      if (!reply && raw && SILENCE.test(String(raw).trim())) return ''
       return reply || cfg.fallbackReply
     } catch (e) {
       // 报错只写日志，不返回给 AIRI
@@ -142,7 +155,7 @@ export function createServer(ctx, cfg) {
     let body = {}
     try {
       body = JSON.parse((await readText(req)) || '{}')
-    } catch {}
+    } catch (e) { if (e && e.code === 'ETOOBIG') throw e }
     if (body.new) {
       saveState({ sessionId: null })
       return sendJson(res, 200, { ok: true, current: null })
@@ -159,19 +172,36 @@ export function createServer(ctx, cfg) {
   //   { motion?, emotion?, expression?, delay?, say? } → 进待说队列，桌宠下一次轮询就演
   async function actRoute(req, res) {
     let body = {}
-    try { body = JSON.parse((await readText(req)) || '{}') } catch {}
+    try { body = JSON.parse((await readText(req)) || '{}') } catch (e) { if (e && e.code === 'ETOOBIG') throw e }
     const parts = []
-    if (body.motion) parts.push(`<|ACT ${JSON.stringify({ motion: String(body.motion) })}|>`)
+    if (body.motion) {
+      const m = String(body.motion).trim()
+      if (!MOTION_RE.test(m) || m.includes('..')) {
+        return sendJson(res, 400, { ok: false, error: 'motion 名字不合法（要 Animation/<名字>.motion3.json）：' + m.slice(0, 60) })
+      }
+      parts.push(`<|ACT ${JSON.stringify({ motion: m })}|>`)
+    }
     if (body.emotion) {
       const e = typeof body.emotion === 'string' ? { name: body.emotion } : body.emotion
+      if (e && e.name !== undefined && !EMOTION_RE.test(String(e.name))) {
+        return sendJson(res, 400, { ok: false, error: 'emotion 名字不合法：' + String(e.name).slice(0, 32) })
+      }
       parts.push(`<|ACT ${JSON.stringify({ emotion: e })}|>`)
     }
-    if (body.expression !== undefined) parts.push(`<|ACT ${JSON.stringify({ expression: body.expression })}|>`)
-    if (body.delay) parts.push(`<|DELAY ${Number(body.delay)}|>`)
-    if (body.say) parts.push(String(body.say))
+    if (body.expression !== undefined) {
+      if (body.expression !== null && !EXPR_RE.test(String(body.expression))) {
+        return sendJson(res, 400, { ok: false, error: 'expression 名字不合法：' + String(body.expression).slice(0, 40) })
+      }
+      parts.push(`<|ACT ${JSON.stringify({ expression: body.expression })}|>`)
+    }
+    if (body.delay) parts.push(`<|DELAY ${clampDelay(body.delay)}|>`)
+    if (body.say) parts.push(String(body.say).slice(0, MAX_CHARS))
     const text = parts.join('')
     if (!text) return sendJson(res, 400, { ok: false, error: '至少给 motion / emotion / expression / delay / say 之一' })
-    followups.push(text)
+    // 走 pushRaw：<|DELAY n|> 在 cleanForSpeech 里会被当"不念的东西"删掉，延迟必须原样留着
+    if (!followups.pushRaw(text)) {
+      return sendJson(res, 409, { ok: false, error: '推送已暂停（先 /dafei/pause {on:false}）' })
+    }
     log('◀ Agent 主动动作：' + text)
     return sendJson(res, 200, { ok: true, queued: followups.count(), text })
   }
@@ -181,7 +211,7 @@ export function createServer(ctx, cfg) {
   //   和 /dafei/act 的区别：act 演单个动作，scene 按时间轴连演一串
   async function sceneRoute(req, res) {
     let body = {}
-    try { body = JSON.parse((await readText(req)) || '{}') } catch {}
+    try { body = JSON.parse((await readText(req)) || '{}') } catch (e) { if (e && e.code === 'ETOOBIG') throw e }
     const name = String(body.name || '').trim()
     if (!name) {
       return sendJson(res, 400, { ok: false, error: '需要 name', scenes: Object.keys(SCENES) })
@@ -201,8 +231,9 @@ export function createServer(ctx, cfg) {
   //   暂停期间 push / pushMotion / pushRaw 一律返回 false，pending 保持空 → airi 不会发消息 → 不打断。
   async function pauseRoute(req, res) {
     let body = {}
-    try { body = JSON.parse((await readText(req)) || '{}') } catch {}
+    try { body = JSON.parse((await readText(req)) || '{}') } catch (e) { if (e && e.code === 'ETOOBIG') throw e }
     const paused = followups.setPaused(!!body.on)
+    if (paused) clearQueue() // 已排队的那句口播也要清，否则这句一停就接着念，录制照样被打断
     return sendJson(res, 200, { ok: true, paused, count: followups.count() })
   }
 
@@ -212,7 +243,7 @@ export function createServer(ctx, cfg) {
   //   POST /dafei/say            → { text, model?, voice?, play?, motion? } 后台合成播放
   async function sayRoute(req, res) {
     let body = {}
-    try { body = JSON.parse((await readText(req)) || '{}') } catch {}
+    try { body = JSON.parse((await readText(req)) || '{}') } catch (e) { if (e && e.code === 'ETOOBIG') throw e }
     const text = String(body.text || '').trim()
     if (!text) return sendJson(res, 400, { ok: false, error: '需要 text' })
     // 上限用 speak 真正会念的长度：说 400 却只念 200 会被当成"我念了"
@@ -233,8 +264,17 @@ export function createServer(ctx, cfg) {
   }
 
   const server = http.createServer(async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Headers', '*')
+    // 只给本机 / 桌宠（file://）用：别的网页发起的跨域请求一律挡掉，否则任意站点都能驱动本机会话
+    const origin = req.headers.origin
+    if (!originAllowed(origin)) {
+      log('✗ 拒绝跨域请求：' + origin)
+      return sendJson(res, 403, { error: { message: 'cross-origin not allowed', type: 'invalid_request_error' } })
+    }
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin)
+      res.setHeader('Vary', 'Origin')
+    }
+    res.setHeader('Access-Control-Allow-Headers', 'content-type, authorization')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     if (req.method === 'OPTIONS') return res.writeHead(204).end()
 
@@ -272,7 +312,7 @@ export function createServer(ctx, cfg) {
       }
       if (req.method === 'POST' && path === '/dafei/voice') {
         let body = {}
-        try { body = JSON.parse((await readText(req)) || '{}') } catch {}
+        try { body = JSON.parse((await readText(req)) || '{}') } catch (e) { if (e && e.code === 'ETOOBIG') throw e }
         const enabled = !!body.enabled
         saveState({ voiceEnabled: enabled })
         log('语音回复' + (enabled ? ' 已开启' : ' 已关闭'))
@@ -281,6 +321,12 @@ export function createServer(ctx, cfg) {
       if (req.method === 'POST' && path === '/dafei/say') return await sayRoute(req, res)
       sendJson(res, 404, { error: { message: `Not found: ${req.method} ${req.url}`, type: 'invalid_request_error' } })
     } catch (e) {
+      if (e && e.code === 'ETOOBIG') {
+        // 先把 413 发出去再断连接：直接 destroy 的话客户端只会看到 connection reset
+        sendJson(res, 413, { error: { message: 'payload too large (16MB)', type: 'invalid_request_error' } })
+        try { req.destroy() } catch {}
+        return
+      }
       log('✗ 处理请求出错：', e)
       if (!res.headersSent) sendJson(res, 500, { error: { message: 'internal error', type: 'server_error' } })
       else res.end()
@@ -310,14 +356,39 @@ export function createServer(ctx, cfg) {
   }
 }
 
-function readText(req) {
+function readText(req, limit = 16 * 1024 * 1024) {
   return new Promise((resolve, reject) => {
     let data = ''
+    let size = 0
+    let settled = false
     req.setEncoding('utf8')
-    req.on('data', (c) => (data += c))
-    req.on('end', () => resolve(data))
-    req.on('error', reject)
+    let over = false
+    req.on('data', (c) => {
+      if (settled) return
+      size += Buffer.byteLength(c)
+      // 超限就停止累积（数据丢掉），但继续把 body 读完 → 客户端能收到干净的 413 而不是 connection reset
+      if (size > limit) { over = true; data = ''; return }
+      if (!over) data += c
+    })
+    req.on('end', () => {
+      if (settled) return
+      settled = true
+      if (over) { const e = new Error('payload too large'); e.code = 'ETOOBIG'; return reject(e) }
+      resolve(data)
+    })
+    req.on('error', (e) => { if (!settled) { settled = true; reject(e) } })
   })
+}
+
+// 跨域白名单：无 Origin（本机脚本/curl）、桌宠（file:// / null）、本机端口（DSH 网页）
+function originAllowed(origin) {
+  if (!origin) return true
+  if (origin === 'null') return true
+  if (/^(file|app|chrome-extension):/i.test(origin)) return true
+  try {
+    const u = new URL(origin)
+    return ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(u.hostname)
+  } catch { return false }
 }
 
 function sendJson(res, status, obj) {
