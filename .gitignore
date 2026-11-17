@@ -1,0 +1,14 @@
+# 运行数据与日志
+data/
+*.log
+debug.log
+
+# 依赖
+node_modules/
+
+# 桌宠程序（airi.exe + app.asar，2.9GB）——不入库，单独分发
+桌宠/
+
+# 临时与打包
+.tmp/
+*.zip
