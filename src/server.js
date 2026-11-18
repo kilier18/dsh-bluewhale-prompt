@@ -20,6 +20,8 @@ import { localHelperReply, forwardToDeepSeek } from './helpers.js'
 import { isVisionRequest, describeImages } from './vision.js'
 import { createFollowups, PENDING_MARK } from './followups.js'
 import { petMessage } from './pet-rules.js'
+import { motionAllowed } from './motions.js'
+import { suggestion, intents, motionNames, motions as dictMotions, tiers, describe as describeDict } from './l2d-dict.js'
 import { speak, spokenLine, speaking, voiceEnabled, rvcOk, scriptOk, clearQueue, VOICE_SCRIPT, MAX_CHARS } from './voice.js'
 
 const MODEL = 'dsh'
@@ -179,6 +181,9 @@ export function createServer(ctx, cfg) {
       if (!MOTION_RE.test(m) || m.includes('..')) {
         return sendJson(res, 400, { ok: false, error: 'motion 名字不合法（要 Animation/<名字>.motion3.json）：' + m.slice(0, 60) })
       }
+      if (!motionAllowed(m)) {
+        return sendJson(res, 404, { ok: false, error: '动作库里没有这个动作（可能已被删除或改名）：' + m.slice(0, 60) })
+      }
       parts.push(`<|ACT ${JSON.stringify({ motion: m })}|>`)
     }
     if (body.emotion) {
@@ -300,6 +305,40 @@ export function createServer(ctx, cfg) {
       }
       if (req.method === 'GET' && path === '/dafei/pending') return sendJson(res, 200, { count: followups.count() })
       if (req.method === 'GET' && path === '/dafei/health') return sendJson(res, 200, { ok: true })
+
+      // ---- 动作语义字典 ----
+      //   GET /dafei/dict                         → 全量索引（意图表 + 动作清单 + 三档 + 铁律）
+      //   GET /dafei/dict?intent=撒娇&duration=12  → 直接给编排建议（动作、起始窗口、手臂映射）
+      //   GET /dafei/dict?text=1                   → 给 LLM 的纯文本速查（describe）
+      if (req.method === 'GET' && path === '/dafei/dict') {
+        const q = new URL(req.url, 'http://x').searchParams
+        const intent = (q.get('intent') || '').slice(0, 60)
+        const duration = Number(q.get('duration')) || 0
+        if (intent) {
+          const sug = suggestion(intent, duration)
+          if (!sug) return sendJson(res, 404, { ok: false, error: '字典里没有这个意图：' + intent, intents: intents().map((r) => r.intent) })
+          return sendJson(res, 200, { ok: true, ...sug })
+        }
+        if (q.get('text') === '1') {
+          res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
+          return res.end(describeDict({ limit: Number(q.get('limit')) || 0 }))
+        }
+        return sendJson(res, 200, {
+          ok: true,
+          tiers: tiers(),
+          intents: intents(),
+          motions: dictMotions().map((m) => ({
+            name: m.name,
+            dur: m.dur,
+            tier: m.tier,
+            arms: m.arms,
+            switches: m.switches,
+            holds: m.holds,
+            faceswapDanger: m.faceswapDanger,
+          })),
+          count: motionNames().length,
+        })
+      }
 
       // ---- 语音 ----
       if (req.method === 'GET' && path === '/dafei/voice') {

@@ -1,0 +1,323 @@
+{
+ "＞＜": {
+  "file": "Exp3/＞＜.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key3",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "key4",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "key5",
+    "value": 1,
+    "blend": "Add"
+   },
+   {
+    "id": "key6",
+    "value": 0,
+    "blend": "Add"
+   }
+  ]
+ },
+ "黑脸": {
+  "file": "Exp3/黑脸.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key1",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "黑框眼镜": {
+  "file": "Exp3/黑框眼镜.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key11",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "钢盆": {
+  "file": "Exp3/钢盆.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key10",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "裙子切换": {
+  "file": "Exp3/裙子切换.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes1",
+    "value": -1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "脸红": {
+  "file": "Exp3/脸红.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key7",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "脱鞋": {
+  "file": "Exp3/脱鞋.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes4",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "胸口衣服": {
+  "file": "Exp3/胸口衣服.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes3",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "竖食指开": {
+  "file": "Exp3/竖食指开.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Movement1",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "Movement3",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "竖食指关": {
+  "file": "Exp3/竖食指关.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Movement3",
+    "value": 0,
+    "blend": "Add"
+   }
+  ]
+ },
+ "爱心眼": {
+  "file": "Exp3/爱心眼.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key4",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "流泪": {
+  "file": "Exp3/流泪.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key2",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "流冷汗": {
+  "file": "Exp3/流冷汗.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key13",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "屑屑眼": {
+  "file": "Exp3/屑屑眼.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key3",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "key5",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "key6",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "尾巴开关": {
+  "file": "Exp3/尾巴开关.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes5",
+    "value": -1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "小号": {
+  "file": "Exp3/小号.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes2",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "大号": {
+  "file": "Exp3/大号.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes2",
+    "value": 0,
+    "blend": "Add"
+   }
+  ]
+ },
+ "圈圈眼": {
+  "file": "Exp3/圈圈眼.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key3",
+    "value": 1,
+    "blend": "Add"
+   },
+   {
+    "id": "key4",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "key5",
+    "value": 0,
+    "blend": "Add"
+   },
+   {
+    "id": "key6",
+    "value": 0,
+    "blend": "Add"
+   }
+  ]
+ },
+ "单片眼镜": {
+  "file": "Exp3/单片眼镜.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key12",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "加载": {
+  "file": "Exp3/加载.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key8",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "前倾": {
+  "file": "Exp3/前倾.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "LeanInput",
+    "value": -30,
+    "blend": "Add"
+   }
+  ]
+ },
+ "兔牙": {
+  "file": "Exp3/兔牙.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "key9",
+    "value": 1,
+    "blend": "Add"
+   }
+  ]
+ },
+ "中号": {
+  "file": "Exp3/中号.exp3.json",
+  "fadeIn": 1,
+  "fadeOut": 1,
+  "parameters": [
+   {
+    "id": "Clothes2",
+    "value": 0.4000000059604645,
+    "blend": "Add"
+   }
+  ]
+ }
+}

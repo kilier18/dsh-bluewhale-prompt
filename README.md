@@ -24,8 +24,12 @@ src/
   vision.js           桌宠截屏 → DSH 模型写描述 → 当上下文给角色
   helpers.js          AIRI 的麦克风辅助请求（说完判定 / 转写修正）
   followups.js        后续消息投递 + 会话漂移自愈 + 自动朗读挂点
-  voice.js            语音回复：Edge-TTS → RVC → 播放 + 原子-说话
+  voice.js            语音回复：Edge-TTS → RVC → 播放 + 正常说话-抚胸
+  l2d-dict.js         动作语义字典的运行时入口（挑动作、挑窗口、给手臂映射）
+  motions.js          动作白名单（从字典派生，库里没有的动作直接 404）
   cookie-cleaner.js   清 DSH 越攒越多的登录 Cookie（否则请求头超 16KB 打不开）
+dict/                 动作语义字典（44 条官方动作的实测拆解 + 参数表 + 表情表，见 dict/README.md）
+scripts/              字典/编排工具链：拉动作、拆字典、编译 plan、烘焙 motion3、合成手臂
 locale/               中英文案
 桌宠规则.md            表情动作规则（每句话附在 prompt 后面；改完不用重启）
 ```
@@ -55,6 +59,31 @@ locale/               中英文案
 
 要点：只用库里的 `表演-*` / `情绪-*` 拼，不原创；段与段直连（不插空档）、按「收势姿态」挑窗口、`Movement1/2/3`（换手组）逐帧二值化否则手臂出现残影；`ParamMouthOpenY` 永远取音频口型。详见本地手册 `D:\DSH使用策略\手册\10-蓝鲸桌宠.md`。
 
+### 5. 动作语义字典（本仓库新增）
+
+桌宠能演的动作只有官方 44 条，「自然」不靠数量靠**挑得准**。`dict/` 把这套判断从手感变成查表：
+
+```bash
+GET /dafei/dict                                 # 18 条意图 → 动作/窗口/手臂 对照表 + 三档幅度 + 计数
+GET /dafei/dict?intent=撒娇&duration=12          # 直接给编排建议（含 armMap 三段映射）
+GET /dafei/dict?text=1&limit=20                  # 纯文本速查，可直接喂给任意 LLM
+```
+
+字典由 `scripts/l2d-dict.py` 从桌宠 OPFS 的现网 motion3 逐帧拆出来（幅度极值、换手窗口、
+0.5s 活跃度曲线、最活跃窗口），所有数字都是作者原曲线的实测值。改动作库后重跑
+`scripts/pull-motions.mjs` + `l2d-dict.py` 即可，插件代码不用动。
+
+配套工具链（都能单独用，不依赖 DSH）：
+
+| 脚本 | 作用 |
+|---|---|
+| `scripts/pull-motions.mjs` | 通过 CDP 从桌宠 OPFS 把动作原件拉到本地 |
+| `scripts/l2d-dict.py` | 动作原件 → 字典（JSON / Markdown） |
+| `scripts/gen-prompt.mjs` | 字典 → `dict/DICT.prompt.md`（给 LLM 的速查卡） |
+| `scripts/l2d-compile.mjs` | 语义 plan（sway/nod/tilt/look/blink/gesture/expression…）→ 参数 IR，带冲突校验 |
+| `scripts/l2d-bake.mjs` | IR → `motion3.json`（可 `--mouth` 挂音频口型） |
+| `scripts/l2d-compose.mjs` | 把作者原片的手臂曲线按时间重映射叠到 IR 上（手臂绝不自拧） |
+
 ## 装法
 
 1. 需要 DSH 桌面版（已登录）**和** RVCover（`http://127.0.0.1:8765`，语音功能才需要）。
@@ -81,6 +110,7 @@ locale/               中英文案
 | GET | `/dafei/sessions` | 会话列表 |
 | GET | `/dafei/pending` | 后续消息（airi 每 2 秒轮询） |
 | GET | `/dafei/scene` | 当前场景 |
+| GET | `/dafei/dict` | 动作语义字典：全量索引 / `?intent=&duration=` 编排建议 / `?text=1` 纯文本 |
 
 ## 已知坑（精选）
 
@@ -89,6 +119,9 @@ locale/               中英文案
 - 推 OPFS 后必须 `Page.reload{ignoreCache:true}`，`window.__dafeiMotions` 只在模型加载时算一次。
 - airi 手工带 CDP 重启前要清 `ELECTRON_RUN_AS_NODE`（bash 里它是 1，会秒退）。
 - 动作被顶：`pages-*.js` 里 `holdsVoice(context)` → `setMotion(Think, FORCE)`，源头是 pending 轮询；录制前 `POST /dafei/pause {on:true}`。
+- 手臂「残影 / 手别到背后」：`Movement1/2/3` 是换手开关（作者是 0.8s 斜坡，二值化就出残影），手臂参数除 Movement 外还有 `Param11`、`Param27–32` 等手掌细分，少搬一条抬手时手就会丢姿态；手臂只能整条搬作者原片。
+- 胸腔参数（`ParamBodyAngle*`、`ChestX1/Y1`、`Param138`）在这个模型上写不进变形器，幅度只能靠 `PositionX/Y/Z` + `LeanInput` + `AngleZ`。
+- 整脸换层表情（`key1/3/5/6/10`：黑脸、＞＜、屑屑眼、圈圈眼、钢盆）会顶掉嘴部动画，唱歌别用；只用 `key4` 爱心眼、`key7` 脸红、`key9` 兔牙。
 
 ## 文档
 
