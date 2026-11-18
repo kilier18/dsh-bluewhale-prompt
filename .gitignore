@@ -16,3 +16,6 @@ node_modules/
 # 字幕字体（体积大，用 scripts/get-fonts.mjs 下载）
 fonts/*.ttf
 fonts/*.otf
+
+# 中间产物（口型/编舞/录像/成片）
+.work/
