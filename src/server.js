@@ -211,6 +211,9 @@ export function createServer(ctx, cfg) {
     return sendJson(res, 200, { ok: true, queued: followups.count(), text })
   }
 
+  // 最近一次场景（GET /dafei/scene 回显；进程内内存即可，重启归零）
+  let lastScene = null
+
   // Agent 主动让桌宠演一段场景：POST /dafei/scene
   //   { name: 'explain' } → 把 SCENES[name] 拼成一串 ACT+DELAY 丢进待说队列
   //   和 /dafei/act 的区别：act 演单个动作，scene 按时间轴连演一串
@@ -226,6 +229,7 @@ export function createServer(ctx, cfg) {
       return sendJson(res, 400, { ok: false, error: '没有这个场景：' + name, scenes: Object.keys(SCENES) })
     }
     followups.pushRaw(text)
+    lastScene = { name, at: Date.now(), steps: sceneSteps(name).length }
     log('◀ Agent 场景：' + name + ' → ' + text.slice(0, 160))
     return sendJson(res, 200, { ok: true, scene: name, steps: sceneSteps(name).length, queued: followups.count(), text })
   }
@@ -296,7 +300,12 @@ export function createServer(ctx, cfg) {
       }
       if (req.method === 'POST' && path === '/dafei/session') return await switchSession(req, res)
       if (req.method === 'POST' && path === '/dafei/act') return await actRoute(req, res)
-      if (req.method === 'POST' && path === '/dafei/scene') return await sceneRoute(req, res)
+      if (path === '/dafei/scene') {
+        if (req.method === 'GET') {
+          return sendJson(res, 200, { ok: true, scene: lastScene, scenes: Object.keys(SCENES) })
+        }
+        if (req.method === 'POST') return await sceneRoute(req, res)
+      }
       // 录制长动作/唱歌前先 on:true，录完 off:false
       //   GET  /dafei/pause 也能查当前状态
       if (path === '/dafei/pause') {
