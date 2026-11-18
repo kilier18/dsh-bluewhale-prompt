@@ -16,6 +16,7 @@
 | `l2d-motion-dict.md` | 31 KB | 人 | 带解释的长文档（含 15 条表演的逐拍拆解） |
 | `DICT.prompt.md` | 8 KB | LLM | 塞进上下文用的速查卡（`scripts/gen-prompt.mjs` 生成） |
 | `l2d-params.json` | 35 KB | 程序 | moc3 core 509 个参数的 min/max/default、33 个可写语义参数、10 个物理输出、手势关节表 |
+| `l2d-arm-poses.json` | 三种手势（抚胸/食指/狗尾草）**保持段的稳态关节值**，`scripts/l2d-arm.mjs` 用它自己生成抬手/收回曲线（2KB） |
 | `l2d-expressions.json` | 4.6 KB | 程序 | 23 个 exp3 表情的原始参数与叠加方式 |
 
 ## 在插件里怎么用
@@ -76,3 +77,5 @@ node scripts/gen-prompt.mjs
 8. 微笑打成 0.4s 脉冲；头比身体晚 0.1–0.3s 跟随。
 9. 挑窗口看活跃度，不用片段开头。
 10. 单条编排 ≤64 个 action，单段 0.2–20s，总长 ≤60s。
+
+> 手臂姿态常量重生成：`node scripts/gen-arm-poses.mjs --lib .motions-lib`（从 `正常说话-*` 原片 t=12s 的保持中点量取）。

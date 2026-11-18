@@ -2,7 +2,7 @@
 
 DeepSeek Harness（DSH）插件：让桌面上的 Live2D 桌宠「大肥鱼」和 DSH 里你选的那个会话说话——角色的回复带着表情和动作回到桌宠身上，桌宠还会**开口念出来**（Edge-TTS + RVC 鲸鱼娘音色）。附带一套**唱歌口型编排**工具链：一段干声 → 逐帧口型 + 表情动作 → OBS 录制 → 成片。
 
-本仓库是 [yangzhenghaniirs-code/blue-whale](https://github.com/yangzhenghaniirs-code/blue-whale) v0.3.0 的**本地改造分支**（当前 0.5.0），已经加了大量自己写的功能（语音、唱歌、会话自愈、桌面动作协议），**不再跟随上游同步**。上游原版用来「装上就能聊」，本仓库用来「定档自己这一套」。
+本仓库是 [yangzhenghaniirs-code/blue-whale](https://github.com/yangzhenghaniirs-code/blue-whale) v0.3.0 的**本地改造分支**（当前 0.6.0），已经加了大量自己写的功能（语音、唱歌、会话自愈、桌面动作协议），**不再跟随上游同步**。上游原版用来「装上就能聊」，本仓库用来「定档自己这一套」。
 
 ## 这个仓库里有什么
 
@@ -61,10 +61,24 @@ locale/               中英文案
 - 队列：上一句还在念时新的一句排队（只留最新一条），念完自动接上；同一句 20 秒内不重念。
 - 关掉开关 = 一行都不念，但 `POST /dafei/say` 手动调用仍然有效。
 
-### 4. 唱歌口型（本仓库新增）
-干声 → `l2d-song.mjs`（逐帧口型）→ 字典驱动的语义 plan（`l2d-song-plan.mjs`）→ `l2d-compile.mjs` → `l2d-bake.mjs --mouth` → `l2d-compose.mjs`（叠作者手臂）→ 推 OPFS → CDP 触发 → OBS 录 → ffmpeg 重挂音轨。
+### 4. 唱歌口型与编舞（本仓库新增，全自有）
 
-要点：身体/表情按字典的 `bestWindows` 挑**最活跃**的窗口（不是从 0 秒起手，否则开头就是死区）；手臂整条搬作者原片（含 `Param11`、`Param27–32` 这些手掌细分，少一条抬手就丢姿态）；`ParamMouthOpenY` 永远取音频口型；整脸换层表情（`key1/3/5/6/10`）不能出现在唱歌里。详见本地手册 `D:\DSH使用策略\手册\11-唱歌口型与成片.md`。
+干声 → `l2d-song.mjs`（逐帧口型）→ `gen-song.mjs`（**我们自己编的**唱段）→ 推 OPFS → `sing-play.mjs`（按时间轴一段段播）→ OBS 录 → ffmpeg 重挂音轨。
+
+`gen-song.mjs` 一条命令产出一串 3–9 秒的 `唱段-NN.motion3.json` + `song.json` 清单：
+
+```bash
+node scripts/gen-song.mjs --mouth 唱歌.motion3.json --out .songs/song-a     # 时长从口型文件读
+node scripts/gen-song.mjs --duration 270 --mouth mouth270.motion3.json --out .songs/song-b
+node scripts/sing-play.mjs --song .songs/song-a/song.json --audio "file:///D:/path/mix.mp3"
+```
+
+- **身体/头/表情**全部来自我们自己的段落预设（`scripts/l2d-song-presets.json`：sway / pose / tilt / nod / look / blink / expression），曲线由 `l2d-compile.mjs` 生成——**不套官方表演片段**。
+- **手臂**由 `l2d-arm.mjs` 自己生成「抬手 1.1s → 保持 → 收回 2.0s」，姿态常量来自 `dict/l2d-arm-poses.json`（`gen-arm-poses.mjs` 从原片保持段量出来的稳态关节值）。`Movement1/2/3` 只会有一个是 1，手掌细分（`Param11`、`Param27–32`）一并推到位，所以抬手不丢姿态、也不会出现「多一条手臂」。想退回官方原片重映射：`--arm clip`。
+- **口型**从音频口型 motion3 里按段切片并重基准，长歌切成 N 段播放时接缝处口型连续（实测 41 段、0 处跳变）。
+- 段落按权重循环铺满整首（4 分半实测 41 段 / 5.7MB / 0.84 秒生成完），每圈做确定性抖动，不会一模一样地复读。
+- 整脸换层表情（`key1/3/5/6/10`：黑脸、＞＜、屑屑眼、圈圈眼、钢盆）会顶掉嘴部动画，唱歌别用；只用 `key4` 爱心眼、`key7` 脸红、`key9` 兔牙。
+- 日常表演/场景仍走字典 + `gen-scenes.mjs`（见 §5）。详见本地手册 `D:\DSH使用策略\手册\11-唱歌口型与成片.md`。
 
 ### 5. 动作语义字典（本仓库新增）
 

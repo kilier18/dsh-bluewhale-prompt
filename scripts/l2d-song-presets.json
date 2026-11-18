@@ -1,0 +1,71 @@
+{
+  "//": "唱歌编排预设库：每段只写语义动作，at/duration 都是「段内相对秒」。weight 决定这首歌里各段占比。",
+  "order": ["intro", "verse", "prechorus", "chorus", "bridge", "chorus", "outro"],
+  "presets": {
+    "intro": {
+      "weight": 0.55,
+      "actions": [
+        { "kind": "sway", "at": 1.4, "duration": 5.6, "strength": 0.45, "period": 9 },
+        { "kind": "look", "dir": "down", "at": 1.5, "duration": 2.2, "strength": 0.35 },
+        { "kind": "blink", "at": 2.6, "duration": 0.4, "count": 1 },
+        { "kind": "smile", "at": 3.4, "duration": 3.0, "strength": 0.4 },
+        { "kind": "blink", "at": 5.4, "duration": 0.4, "count": 1 }
+      ]
+    },
+    "verse": {
+      "weight": 1,
+      "actions": [
+        { "kind": "sway", "at": 0, "duration": 8, "strength": 0.6, "period": 8 },
+        { "kind": "look", "dir": "left", "at": 0.6, "duration": 2.4, "strength": 0.4 },
+        { "kind": "blink", "at": 2.8, "duration": 0.4, "count": 1 },
+        { "kind": "tilt", "at": 3.6, "duration": 2.4, "strength": 0.4 },
+        { "kind": "blink", "at": 5.2, "duration": 0.4, "count": 1 },
+        { "kind": "nod", "at": 6.4, "duration": 0.9, "strength": 0.4 }
+      ]
+    },
+    "prechorus": {
+      "weight": 0.8,
+      "actions": [
+        { "kind": "sway", "at": 0, "duration": 6, "strength": 0.75, "period": 6.5 },
+        { "kind": "look", "dir": "up", "at": 0.4, "duration": 2.0, "strength": 0.5 },
+        { "kind": "blink", "at": 1.8, "duration": 0.4, "count": 1 },
+        { "kind": "pose", "at": 2.6, "duration": 2.6, "params": { "PositionZ": 5, "AngleX": 3 } },
+        { "kind": "nod", "at": 3.6, "duration": 0.9, "strength": 0.5 },
+        { "kind": "blink", "at": 4.8, "duration": 0.4, "count": 1 }
+      ]
+    },
+    "chorus": {
+      "weight": 1.15,
+      "actions": [
+        { "kind": "sway", "at": 0, "duration": 8, "strength": 1.05, "period": 5.5 },
+        { "kind": "pose", "at": 0.8, "duration": 3.2, "params": { "PositionZ": 7, "AngleX": 4 } },
+        { "kind": "blink", "at": 1.6, "duration": 0.4, "count": 1 },
+        { "kind": "nod", "at": 4.2, "duration": 0.9, "strength": 0.6 },
+        { "kind": "expression", "name": "脸红", "at": 0, "duration": 7.6, "strength": 0.4 },
+        { "kind": "blink", "at": 5.6, "duration": 0.4, "count": 1 },
+        { "kind": "tilt", "at": 6.0, "duration": 2.0, "strength": -0.35 }
+      ]
+    },
+    "bridge": {
+      "weight": 0.75,
+      "actions": [
+        { "kind": "sway", "at": 0, "duration": 6.5, "strength": 0.4, "period": 9.5 },
+        { "kind": "look", "dir": "right", "at": 0.6, "duration": 2.6, "strength": 0.5 },
+        { "kind": "blink", "at": 2.2, "duration": 0.4, "count": 1 },
+        { "kind": "expression", "name": "爱心眼", "at": 2.0, "duration": 3.0, "strength": 0.3 },
+        { "kind": "blink", "at": 4.4, "duration": 0.4, "count": 1 },
+        { "kind": "smile", "at": 4.6, "duration": 2.0, "strength": 0.45 }
+      ]
+    },
+    "outro": {
+      "weight": 0.7,
+      "actions": [
+        { "kind": "sway", "at": 0, "duration": 5.4, "strength": 0.35, "period": 9 },
+        { "kind": "smile", "at": 0.8, "duration": 3.4, "strength": 0.5 },
+        { "kind": "blink", "at": 2.0, "duration": 0.4, "count": 1 },
+        { "kind": "nod", "at": 2.8, "duration": 0.9, "strength": 0.4 },
+        { "kind": "blink", "at": 4.2, "duration": 0.4, "count": 1 }
+      ]
+    }
+  }
+}

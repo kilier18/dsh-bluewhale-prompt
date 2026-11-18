@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 """把官方 motion3 动作库拆成「给 agent 用的语义字典」。
 
-用法（必须用能跑的 python，系统 python312 是坏的）：
-  PYTHONIOENCODING=utf-8 PYTHONUTF8=1 "D:/AI/RVCover/py311/python.exe" D:/DSH/tools/l2d-dict.py \
-      --lib D:/DSH/workspace/default-workspace/.tmp/sing/lib44 \
-      --out D:/DSH/tools/l2d-motion-dict.json \
-      --md  D:/DSH/tools/l2d-motion-dict.md
+用法（在仓库根目录跑；python 要 3.8+，Windows 上用自己那套能跑的）：
+  python scripts/l2d-dict.py                      # 默认：读 .motions-lib，写 dict/
+  python scripts/l2d-dict.py --lib "D:/xx/lib" --out dict/l2d-motion-dict.json \
+      --md dict/l2d-motion-dict.md --mapping dict/l2d-motion-mapping.json
 
-输⼊：官方 44 条 motion3（表演/情绪/正常说话/换装/待机/脱捕）的本地副本。
-输出：① JSON（机器读）② Markdown（人和 agent 都读）。
+输入：`scripts/pull-motions.mjs` 从桌宠 OPFS 拉下来的官方 44 条 motion3。
+输出：① 瘦身 JSON（插件运行时读）② 全量 JSON ③ Markdown ④ 给 LLM 的速查卡（由 gen-prompt.mjs 生成）。
 """
 import argparse
 import json
@@ -233,7 +232,10 @@ MAPPING = [
 ]
 
 
-EXPR_JSON = r'D:/DSH/tools/l2d-expressions.json'
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+DICT = os.path.join(REPO, 'dict')
+EXPR_JSON = os.path.join(DICT, 'l2d-expressions.json')
 # 整张脸图层替换类键：一旦激活会把嘴部动画顶掉，唱歌/说话场景禁用
 DANGER_KEYS = {'key1', 'key3', 'key5', 'key6', 'key10'}
 
@@ -298,8 +300,8 @@ def best_windows(prof, duration, dur, top=3):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--lib', default=r'D:/DSH/workspace/default-workspace/.tmp/sing/lib44')
-    ap.add_argument('--out', default=r'D:/DSH/tools/l2d-motion-dict.json')
+    ap.add_argument('--lib', default=os.path.join(REPO, '.motions-lib'))
+    ap.add_argument('--out', default=os.path.join(DICT, 'l2d-motion-dict.json'))
     ap.add_argument('--md', default='')
     ap.add_argument('--mapping', default='')
     args = ap.parse_args()

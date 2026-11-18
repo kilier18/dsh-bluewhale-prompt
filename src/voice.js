@@ -10,7 +10,11 @@ import { loadState, log, ROOT } from './state.js'
 import { cleanForSpeech } from './clean-text.js'
 
 // 朗读脚本（Edge-TTS → RVC → 播放 + 张嘴）
-export const VOICE_SCRIPT = 'D:\\DSH\\tools\\dafei-voice.mjs'
+// 朗读脚本随插件一起发布：`scripts/dafei-voice.mjs`（仓库内相对路径解析，
+// 可用环境变量 DAFEI_VOICE_SCRIPT 覆盖成别处的脚本）。
+const HERE = path.dirname(fileURLToPath(import.meta.url))
+export const VOICE_SCRIPT =
+  process.env.DAFEI_VOICE_SCRIPT || path.resolve(HERE, '..', 'scripts', 'dafei-voice.mjs')
 export const RVC_ORIGIN = 'http://127.0.0.1:8765'
 // 硬上限：超过就别念了，念出来也没人听得完
 export const MAX_CHARS = 200
