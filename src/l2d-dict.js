@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url'
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const DICT_PATH = path.resolve(HERE, '..', 'dict', 'l2d-motion-dict.json')
 const MAP_PATH = path.resolve(HERE, '..', 'dict', 'l2d-motion-mapping.json')
+const PITFALLS_PATH = path.resolve(HERE, '..', 'dict', 'l2d-pitfalls.json')
 
 /** 内置兜底规则：字典缺失时也要能跑（只是没有窗口建议）。 */
 const FALLBACK = {
@@ -40,6 +41,10 @@ const readJson = (file, fallback) => {
   } catch {
     return fallback
   }
+}
+
+export function pitfalls() {
+  return readJson(PITFALLS_PATH, { params: {}, fileLevel: {} })
 }
 
 export function dict() {

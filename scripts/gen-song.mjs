@@ -32,6 +32,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 // 2026-11-18c：成品曲线速率限制。语义层叠加 + 多段拼接后，个别接缝会出现瞬时跳变（观感抽搐），
 // 这里按关节角速度上限削平，写在 motion3 成品上，与编译顺序无关。
 const RATE_LIMIT = { AngleX: 130, AngleY: 130, AngleZ: 130, PositionX: 220, PositionY: 220, PositionZ: 220, LeanInput: 110, ShoulderX: 150 }
+// 2026-11-18d：前探上限。真人唱歌很少持续前扑，超过 +6 的 PositionZ / LeanInput 一律压住（负方向不动）
+const FORWARD_MAX = { PositionZ: 1.5, LeanInput: 3, AngleX: 12 }
+// 低头也别过头：AngleX 低于 -22 会看成「埋头」，压到 -22
+const FORWARD_MIN = { AngleX: -22, AngleZ: -27, PositionX: -18 }
 function rateLimitCurves(motion) {
   for (const c of motion.Curves) {
     const lim = RATE_LIMIT[c.Id]
@@ -42,6 +46,12 @@ function rateLimitCurves(motion) {
     let linear = true
     for (let i = 2; i < seg.length; i += 3) if (seg[i] !== 0) { linear = false; break }
     if (!linear) continue
+    {
+      const f0 = FORWARD_MAX[c.Id]
+      if (f0 !== undefined && seg[1] > f0) seg[1] = f0
+      const g0 = FORWARD_MIN[c.Id]
+      if (g0 !== undefined && seg[1] < g0) seg[1] = g0
+    }
     let pt = [seg[0], seg[1]]
     for (let i = 2; i < seg.length; i += 3) {
       const t = seg[i + 1], v = seg[i + 2]
@@ -50,6 +60,10 @@ function rateLimitCurves(motion) {
       let nv = v
       if (nv - pt[1] > maxD) nv = pt[1] + maxD
       else if (pt[1] - nv > maxD) nv = pt[1] - maxD
+      const fmax = FORWARD_MAX[c.Id]
+      if (fmax !== undefined && nv > fmax) nv = fmax
+      const fmin = FORWARD_MIN[c.Id]
+      if (fmin !== undefined && nv < fmin) nv = fmin
       seg[i + 2] = Math.round(nv * 1e6) / 1e6
       pt = [t, nv]
     }

@@ -79,3 +79,22 @@ node scripts/gen-prompt.mjs
 10. 单条编排 ≤64 个 action，单段 0.2–20s，总长 ≤60s。
 
 > 手臂姿态常量重生成：`node scripts/gen-arm-poses.mjs --lib .motions-lib`（从 `正常说话-*` 原片 t=12s 的保持中点量取）。
+
+## 参数陷阱（写动作前必读）
+
+`l2d-pitfalls.json` 是实测踩出来的黑名单，`import { pitfalls } from '../src/l2d-dict.js'` 或 `GET /dafei/dict?pitfalls=1` 都能拿到。要点：
+
+| 参数 | 结论 | 症状 |
+|---|---|---|
+| `LeanInput` | **禁用** | 常驻 = 整首歌持续「探头」，正负方向在本模型无法可靠定标 |
+| `PositionZ` | ≤ ±5 | 负值同样读作前探，幅度大就和背景透视打架 |
+| `ParamBodyAngleX/Y/Z`、`ChestX1/Y1`、`Param138` | **无效** | 写了完全不动（未绑变形器或被物理覆盖） |
+| `Movement1/2/3` | 只能二值 | 半开 = 两套手臂同时可见 = 残影 / 多一条手臂 |
+| `Param11`、`Param27~32` | 搬手臂时必须一起搬 | 漏掉 → 抬手落手时丢姿态 → 残影 |
+| `Param60` 0.636~0.878 / `Param61` 0~0.196 | 只用量出来的值 | 自己填 = 手甩到背后 / 手腕扭 |
+| `key1/3/5/6/10` | 唱歌禁用 | 整脸图层被替换 → 嘴不动 |
+| `ParamEyeBallX/Y` | ≤ ±0.2 | 眼神左右晃，跳戏 |
+| `Meta.CurveCount` | 加曲线必须重算 | 否则新曲线被 Cubism 整条忽略（口型不动就是这么来的） |
+| `FadeInTime/FadeOutTime` | 烘焙件写 0 | 曲线已带 smoothstep，再淡入 = 起手慢 |
+
+头/身三个角度的真实语义：`AngleX` = **左右转头（yaw）**，`AngleY` = 点头俯仰（pitch），`AngleZ` = 侧倾（roll）。

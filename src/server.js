@@ -21,7 +21,7 @@ import { isVisionRequest, describeImages } from './vision.js'
 import { createFollowups, PENDING_MARK } from './followups.js'
 import { petMessage } from './pet-rules.js'
 import { motionAllowed } from './motions.js'
-import { suggestion, intents, motionNames, motions as dictMotions, tiers, describe as describeDict } from './l2d-dict.js'
+import { suggestion, intents, motionNames, motions as dictMotions, tiers, describe as describeDict, pitfalls } from './l2d-dict.js'
 import { speak, spokenLine, speaking, voiceEnabled, rvcOk, scriptOk, clearQueue, VOICE_SCRIPT, MAX_CHARS } from './voice.js'
 
 const MODEL = 'dsh'
@@ -328,6 +328,7 @@ export function createServer(ctx, cfg) {
           if (!sug) return sendJson(res, 404, { ok: false, error: '字典里没有这个意图：' + intent, intents: intents().map((r) => r.intent) })
           return sendJson(res, 200, { ok: true, ...sug })
         }
+        if (q.get('pitfalls') === '1') return sendJson(res, 200, { ok: true, ...pitfalls() })
         if (q.get('text') === '1') {
           res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' })
           return res.end(describeDict({ limit: Number(q.get('limit')) || 0 }))

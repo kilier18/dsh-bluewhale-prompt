@@ -11,7 +11,7 @@
   ],
   "presets": {
     "intro": {
-      "weight": 0.55,
+      "weight": 1.0,
       "actions": [
         {
           "kind": "sway",
@@ -19,88 +19,77 @@
           "duration": 5.8,
           "strength": 0.6,
           "period": 10,
-          "lean": -3,
           "bias": 3
         },
         {
           "kind": "look",
           "dir": "down",
-          "at": 1.4,
-          "duration": 2.0,
-          "strength": 0.55
-        },
-        {
-          "kind": "blink",
-          "at": 2.2,
-          "duration": 0.4,
-          "count": 1
+          "at": 0.4,
+          "duration": 3.6,
+          "strength": 0.55,
+          "eyes": 0.25
         },
         {
           "kind": "tilt",
-          "at": 2.6,
-          "duration": 2.4,
+          "at": 1.2,
+          "duration": 3.2,
           "strength": 0.5
         },
         {
           "kind": "smile",
-          "at": 3.2,
-          "duration": 3.4,
-          "strength": 0.45
-        },
-        {
-          "kind": "lean",
-          "at": 3.4,
-          "duration": 2.0,
-          "head": -10,
-          "side": 6,
-          "weight": -8,
-          "shiftX": 6,
-          "depth": -4,
-          "strength": 0.8
-        },
-        {
-          "kind": "look",
-          "dir": "left",
-          "at": 4.8,
-          "duration": 1.8,
+          "at": 2.4,
+          "duration": 3.2,
           "strength": 0.45
         },
         {
           "kind": "blink",
-          "at": 5.4,
+          "at": 2.0,
           "duration": 0.4,
           "count": 1
+        },
+        {
+          "kind": "lean",
+          "at": 3.0,
+          "duration": 2.6,
+          "head": -8,
+          "side": 6,
+          "shiftX": 6,
+          "strength": 0.8
         }
       ]
     },
     "verse": {
-      "weight": 1,
+      "weight": 1.0,
       "actions": [
         {
           "kind": "sway",
           "at": 0.0,
-          "duration": 8,
+          "duration": 8.0,
           "strength": 1.05,
           "period": 12,
-          "lean": -4,
           "bias": 9
         },
         {
           "kind": "look",
           "dir": "left",
-          "at": 0.5,
-          "duration": 2.2,
-          "strength": 0.6
+          "at": 0.3,
+          "duration": 4.2,
+          "strength": 0.6,
+          "eyes": 0.3
+        },
+        {
+          "kind": "tilt",
+          "at": 1.6,
+          "duration": 3.6,
+          "strength": 0.55
         },
         {
           "kind": "lean",
-          "at": 1.8,
-          "duration": 3.0,
-          "head": -16,
-          "side": -12,
-          "weight": -18,
-          "shiftX": -10,
-          "depth": -7
+          "at": 3.4,
+          "duration": 3.4,
+          "head": -12,
+          "side": -10,
+          "shiftX": -9
         },
         {
           "kind": "blink",
@@ -109,46 +98,10 @@
           "count": 1
         },
         {
-          "kind": "tilt",
-          "at": 2.6,
-          "duration": 2.4,
-          "strength": 0.55
-        },
-        {
-          "kind": "look",
-          "dir": "right",
-          "at": 2.9,
-          "duration": 1.8,
-          "strength": 0.5
-        },
-        {
-          "kind": "blink",
-          "at": 5.4,
-          "duration": 0.4,
-          "count": 1
-        },
-        {
-          "kind": "lean",
+          "kind": "smile",
           "at": 5.6,
           "duration": 2.4,
-          "head": -12,
-          "side": 9,
-          "weight": -12,
-          "shiftX": 8,
-          "depth": -5
-        },
-        {
-          "kind": "look",
-          "dir": "down",
-          "at": 5.8,
-          "duration": 1.8,
-          "strength": 0.5
-        },
-        {
-          "kind": "tilt",
-          "at": 7.0,
-          "duration": 1.4,
-          "strength": -0.45
+          "strength": 0.4
         }
       ]
     },
@@ -161,52 +114,41 @@
           "duration": 6.5,
           "strength": 1.25,
           "period": 8,
-          "lean": -3,
           "bias": -7
         },
         {
           "kind": "look",
           "dir": "up",
-          "at": 0.4,
-          "duration": 2.0,
-          "strength": 0.65
-        },
-        {
-          "kind": "blink",
-          "at": 1.8,
-          "duration": 0.4,
-          "count": 1
-        },
-        {
-          "kind": "lean",
-          "at": 2.0,
-          "duration": 2.6,
-          "head": -14,
-          "side": 10,
-          "weight": -12,
-          "shiftX": 9,
-          "depth": -6
-        },
-        {
-          "kind": "pose",
-          "at": 2.6,
-          "duration": 2.8,
-          "params": {
-            "PositionZ": 9,
-            "AngleX": 5
-          }
-        },
-        {
-          "kind": "blink",
-          "at": 4.8,
-          "duration": 0.4,
-          "count": 1
+          "at": 0.3,
+          "duration": 3.6,
+          "strength": 0.6,
+          "eyes": 0.3
         },
         {
           "kind": "tilt",
-          "at": 5.6,
-          "duration": 1.8,
+          "at": 1.4,
+          "duration": 3.0,
           "strength": 0.6
+        },
+        {
+          "kind": "lean",
+          "at": 3.0,
+          "duration": 2.8,
+          "head": -10,
+          "side": 8,
+          "shiftX": 8
+        },
+        {
+          "kind": "blink",
+          "at": 2.0,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "smile",
+          "at": 4.0,
+          "duration": 2.6,
+          "strength": 0.45
         }
       ]
     },
@@ -216,38 +158,39 @@
         {
           "kind": "expression",
           "name": "脸红",
-          "at": 0,
+          "at": 0.0,
           "duration": 7.6,
-          "strength": 0.45,
-          "lean": 4
+          "strength": 0.45
         },
         {
           "kind": "sway",
           "at": 0.0,
-          "duration": 8,
+          "duration": 8.0,
           "strength": 1.35,
           "period": 6,
-          "lean": 8,
           "bias": 6
         },
         {
-          "kind": "pose",
-          "at": 0.6,
-          "duration": 3.4,
-          "params": {
-            "PositionZ": 12,
-            "AngleX": 6
-          }
+          "kind": "look",
+          "dir": "right",
+          "at": 0.4,
+          "duration": 4.0,
+          "strength": 0.6,
+          "eyes": 0.35
+        },
+        {
+          "kind": "tilt",
+          "at": 2.2,
+          "duration": 3.2,
+          "strength": -0.6
         },
         {
           "kind": "lean",
-          "at": 1.2,
-          "duration": 3.0,
-          "head": -10,
-          "side": -14,
-          "weight": -16,
-          "shiftX": -12,
-          "depth": -9
+          "at": 4.4,
+          "duration": 3.2,
+          "head": -8,
+          "side": -12,
+          "shiftX": -11
         },
         {
           "kind": "blink",
@@ -256,33 +199,10 @@
           "count": 1
         },
         {
-          "kind": "tilt",
-          "at": 4.2,
-          "duration": 1.8,
-          "strength": -0.6
-        },
-        {
-          "kind": "lean",
-          "at": 5.2,
-          "duration": 2.4,
-          "head": -8,
-          "side": 13,
-          "weight": -10,
-          "shiftX": 11,
-          "depth": -7
-        },
-        {
           "kind": "blink",
-          "at": 5.4,
+          "at": 5.8,
           "duration": 0.4,
           "count": 1
-        },
-        {
-          "kind": "look",
-          "dir": "left",
-          "at": 6.4,
-          "duration": 1.8,
-          "strength": 0.55
         }
       ]
     },
@@ -295,15 +215,15 @@
           "duration": 6.5,
           "strength": 0.95,
           "period": 13,
-          "lean": -6,
           "bias": -10
         },
         {
           "kind": "look",
           "dir": "right",
-          "at": 0.5,
-          "duration": 2.6,
-          "strength": 0.65
+          "at": 0.3,
+          "duration": 4.4,
+          "strength": 0.6,
+          "eyes": 0.3
         },
         {
           "kind": "expression",
@@ -313,30 +233,22 @@
           "strength": 0.35
         },
         {
-          "kind": "blink",
-          "at": 2.2,
-          "duration": 0.4,
-          "count": 1
-        },
-        {
           "kind": "lean",
-          "at": 2.2,
-          "duration": 3.2,
-          "head": -18,
+          "at": 1.4,
+          "duration": 3.4,
+          "head": -14,
           "side": -10,
-          "weight": -20,
-          "shiftX": -8,
-          "depth": -8
+          "shiftX": -8
         },
         {
           "kind": "tilt",
           "at": 3.6,
-          "duration": 2.0,
+          "duration": 2.8,
           "strength": 0.5
         },
         {
           "kind": "blink",
-          "at": 4.4,
+          "at": 2.4,
           "duration": 0.4,
           "count": 1
         },
@@ -357,48 +269,40 @@
           "duration": 5.6,
           "strength": 0.7,
           "period": 11,
-          "lean": -3,
           "bias": 4
         },
         {
           "kind": "smile",
-          "at": 0.6,
+          "at": 0.4,
           "duration": 3.6,
           "strength": 0.55
         },
         {
           "kind": "look",
           "dir": "down",
-          "at": 1.2,
-          "duration": 2.0,
-          "strength": 0.5
+          "at": 0.6,
+          "duration": 3.2,
+          "strength": 0.5,
+          "eyes": 0.25
         },
         {
           "kind": "lean",
-          "at": 1.6,
-          "duration": 2.4,
-          "head": -8,
+          "at": 2.2,
+          "duration": 2.8,
+          "head": -6,
           "side": 8,
-          "weight": -8,
           "shiftX": 6,
-          "depth": -4,
           "strength": 0.8
         },
         {
-          "kind": "blink",
-          "at": 2.0,
-          "duration": 0.4,
-          "count": 1
-        },
-        {
           "kind": "tilt",
-          "at": 3.2,
-          "duration": 1.6,
+          "at": 3.4,
+          "duration": 2.0,
           "strength": -0.4
         },
         {
           "kind": "blink",
-          "at": 4.4,
+          "at": 2.0,
           "duration": 0.4,
           "count": 1
         }

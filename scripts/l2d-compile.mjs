@@ -62,6 +62,27 @@ function holdTrack(pid, value, at, duration, params, meta = {}) {
   })
 }
 
+// 2026-11-18e：正弦慢摆。waves() 的「快冲到峰再回」形状适合点头，用在 sway/重心上就是抽搐，
+// 这里按 60Hz 采样真正弦，并用 smoothstep 包络首尾，保证起落都不突兀。
+function sineWave(pid, amp, at, duration, cycles, params, meta = {}) {
+  const d = def(params, pid)
+  const n = Math.max(1, Math.round(cycles))
+  const fps = 60
+  const total = Math.max(2, Math.round(duration * fps))
+  const pts = []
+  for (let i = 0; i <= total; i++) {
+    const t = (i / total) * duration
+    const phase = (t / duration) * n * Math.PI * 2
+    const env = Math.min(1, t / 0.5, (duration - t) / 0.5)      // 首尾 0.5s 渐入渐出
+    const e = env <= 0 ? 0 : env * env * (3 - 2 * env)
+    let v = d + amp * Math.sin(phase) * e
+    if (meta.negativeOnly) v = d - Math.abs(amp * Math.sin(phase) * e)   // 只往「后仰」一侧摆
+    if (meta.bias) v += meta.bias * e
+    pts.push([Math.round(t * 1e5) / 1e5, clamp(params, pid, v)])
+  }
+  return track(pid, at, duration, pts, meta)
+}
+
 function track(pid, start, duration, points, meta = {}) {
   const pts = points
     .map(([t, v]) => [Math.round(t * 1e5) / 1e5, Math.round(v * 1e6) / 1e6])
@@ -152,10 +173,15 @@ function kLook(a, params, out) {
   const s = num(a.strength, 1)
   const dur = num(a.duration, 1.6)
   const at = num(a.at, 0)
-  out.push(holdTrack('ParamEyeBallX', dir.x * 0.75 * s, at, dur, params, { label: '眼球横向', action: 'look' }))
-  out.push(holdTrack('ParamEyeBallY', dir.y * 0.6 * s, at, dur, params, { label: '眼球纵向', action: 'look' }))
-  out.push(holdTrack('AngleX', dir.x * 28 * s, at + Math.min(0.09, dur * 0.1), Math.max(0.2, dur - 0.09), params, { label: '头转向', action: 'look', fade: 0.55 }))
-  out.push(holdTrack('AngleY', -dir.y * 18 * s, at + 0.12, Math.max(0.2, dur - 0.12), params, { label: '头俯仰', action: 'look', fade: 0.55 }))
+  // 2026-11-18g：眼球幅度默认降到 0.45（原来 0.75），eyes:0 可完全不动眼球只转头
+  const eyes = num(a.eyes, 0.45)
+  const headS = num(a.head, 1)
+  if (eyes > 0) {
+    out.push(holdTrack('ParamEyeBallX', dir.x * 0.75 * s * eyes, at, dur, params, { label: '眼球横向', action: 'look' }))
+    out.push(holdTrack('ParamEyeBallY', dir.y * 0.6 * s * eyes, at, dur, params, { label: '眼球纵向', action: 'look' }))
+  }
+  out.push(holdTrack('AngleX', dir.x * 22 * s * headS, at + Math.min(0.09, dur * 0.1), Math.max(0.2, dur - 0.09), params, { label: '头转向', action: 'look', fade: 0.9 }))
+  out.push(holdTrack('AngleY', -dir.y * 14 * s * headS, at + 0.12, Math.max(0.2, dur - 0.12), params, { label: '头俯仰', action: 'look', fade: 0.9 }))
 }
 
 function kNod(a, params, out, shake = false) {
@@ -172,11 +198,21 @@ function kNod(a, params, out, shake = false) {
 }
 
 function kTilt(a, params, out) {
-  const dir = Math.sign(num(a.dir, 1)) || 1
-  const s = num(a.strength, 1)
+  // 2026-11-18d：歪头不再靠「往镜头前推」表达——那会变成连续探头（观感很怪）。
+  // 改成「头侧倾（AngleZ）+ 轻微偏转（AngleY）+ 一点点后靠」，靠角度而不是纵深。
   const dur = num(a.duration, 2.2)
   const at = num(a.at, 0)
-  out.push(holdTrack('PositionZ', -dir * 9 * s, at, dur, params, { label: '歪头纵深', action: 'tilt', fade: 0.7 }))
+  if (process.env.LEGACY_TILT) {                       // 复现 06 版行为（排查用）
+    const dir = Math.sign(num(a.dir, 1)) || 1
+    const s0 = num(a.strength, 1)
+    out.push(holdTrack('PositionZ', -dir * 9 * s0, at, dur, params, { label: '歪头纵深', action: 'tilt', fade: 0.7 }))
+    return
+  }
+  const sign = Math.sign(num(a.strength, 1)) || 1
+  const s = Math.abs(num(a.strength, 1))
+  out.push(holdTrack('AngleZ', sign * 8 * s, at, dur, params, { label: '歪头·侧倾', action: 'tilt', fade: 0.7 }))
+  out.push(holdTrack('AngleY', sign * 5 * s, at, dur, params, { label: '歪头·偏转', action: 'tilt', fade: 0.7 }))
+  out.push(holdTrack('PositionZ', -3 * s, at, dur, params, { label: '歪头·后靠', action: 'tilt', fade: 0.8 }))
 }
 
 function kSmile(a, params, out) {
@@ -275,10 +311,10 @@ function kSway(a, params, out) {
     if (off) for (const pt of tr.points) pt[1] = clamp(params, pid, pt[1] + off)
     out.push(tr)
   }
-  add('PositionX', 10 * s, '摇晃·重心', true)
-  add('LeanInput', 8 * s, '摇晃·前倾', false, lean)
-  // 侧身/扭身：AngleZ 是这张皮上唯一能看出「转身」的通道（ParamBodyAngle* 实测无效）
-  add('AngleZ', 15 * s, '摇晃·侧身', true, bias)
+  // 2026-11-18e：全部换成正弦慢摆；重心只往后（negativeOnly），避免一眼看见「往镜头前探」
+  out.push(sineWave('PositionX', 9 * s, at, dur, cycles, params, { label: '摇晃·重心', action: 'sway' }))
+  // 2026-11-18f：LeanInput 整条移除——它的正负在本模型上无法可靠定标，且实测「持续前探」全部来自它
+  out.push(sineWave('AngleZ', 13 * s, at, dur, cycles, params, { label: '摇晃·侧身', action: 'sway', bias }))
 }
 
 // 2026-11-18c：撒娇式的「低头 + 重心后甩 + 身体侧倾 + 位移」合成一段语义动作，
@@ -300,9 +336,9 @@ function kLean(a, params, out) {
   }
   mk('AngleX', head, '倾斜·低头')
   mk('AngleZ', side, '倾斜·侧身')
-  mk('LeanInput', weight, '倾斜·重心')
+  // LeanInput 已移除（见 kSway 注释）
   if (shiftX) mk('PositionX', shiftX * 0.8, '倾斜·位移')
-  if (depth) mk('PositionZ', depth, '倾斜·纵深')
+  // PositionZ 纵深已移除：负值在本模型上同样读作前探
 }
 
 function kExpression(a, params, out, opts) {
