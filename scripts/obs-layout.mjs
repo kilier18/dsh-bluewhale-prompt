@@ -20,6 +20,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+const REPO = path.resolve(HERE, '..')
 const CLI = path.join(HERE, 'obs-cli.mjs')
 
 const args = process.argv.slice(2)
@@ -112,7 +113,7 @@ try {
 try {
   const shot = obs('GetSourceScreenshot', { sourceName: scene, imageFormat: 'png', imageWidth: W, imageHeight: H })
   const data = String(shot.imageData).replace(/^data:image\/png;base64,/, '')
-  const out = opt('out', `D:/DSH/workspace/default-workspace/.tmp/obs/layout-${W}x${H}.png`)
+  const out = opt('out', path.join(REPO, '.work', `layout-${W}x${H}.png`))
   fs.mkdirSync(path.dirname(out), { recursive: true })
   fs.writeFileSync(out, Buffer.from(data, 'base64'))
   log(`截图 → ${out}`)

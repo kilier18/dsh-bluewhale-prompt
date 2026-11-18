@@ -63,21 +63,23 @@ locale/               中英文案
 
 ### 4. 唱歌口型与编舞（本仓库新增，全自有）
 
-干声 → `l2d-song.mjs`（逐帧口型）→ `gen-song.mjs`（**我们自己编的**唱段）→ 推 OPFS → `sing-play.mjs`（按时间轴一段段播）→ OBS 录 → ffmpeg 重挂音轨。
-
-`gen-song.mjs` 一条命令产出一串 3–9 秒的 `唱段-NN.motion3.json` + `song.json` 清单：
+一句话：**给歌和干声，出一条带口型、带编舞、带双语字幕的成片**。
 
 ```bash
-node scripts/gen-song.mjs --mouth 唱歌.motion3.json --out .songs/song-a     # 时长从口型文件读
-node scripts/gen-song.mjs --duration 270 --mouth mouth270.motion3.json --out .songs/song-b
-node scripts/sing-play.mjs --song .songs/song-a/song.json --audio "file:///D:/path/mix.mp3"
+node scripts/make-mv.mjs --song 歌.mp3 --vocal 干声.wav [--lyrics 歌词.lrc] \
+  --font "LXGW Marker Gothic"          # 成品默认落 F:/Users/pinn/Videos/
 ```
 
-- **身体/头/表情**全部来自我们自己的段落预设（`scripts/l2d-song-presets.json`：sway / pose / tilt / nod / look / blink / expression），曲线由 `l2d-compile.mjs` 生成——**不套官方表演片段**。
-- **手臂**由 `l2d-arm.mjs` 自己生成「抬手 1.1s → 保持 → 收回 2.0s」，姿态常量来自 `dict/l2d-arm-poses.json`（`gen-arm-poses.mjs` 从原片保持段量出来的稳态关节值）。`Movement1/2/3` 只会有一个是 1，手掌细分（`Param11`、`Param27–32`）一并推到位，所以抬手不丢姿态、也不会出现「多一条手臂」。想退回官方原片重映射：`--arm clip`。
-- **口型**从音频口型 motion3 里按段切片并重基准，长歌切成 N 段播放时接缝处口型连续（实测 41 段、0 处跳变）。
-- 段落按权重循环铺满整首（4 分半实测 41 段 / 5.7MB / 0.84 秒生成完），每圈做确定性抖动，不会一模一样地复读。
-- 整脸换层表情（`key1/3/5/6/10`：黑脸、＞＜、屑屑眼、圈圈眼、钢盆）会顶掉嘴部动画，唱歌别用；只用 `key4` 爱心眼、`key7` 脸红、`key9` 兔牙。
+内部顺序：口型(`l2d-song --fps 60`) → 编舞(`gen-song --single 1`) → 推 OPFS(`push-custom`) → OBS 录制(`sing-record`) → 量音画偏移(`sync-offset`，能量包络互相关) → **一遍过**编码（裁头 + 烧字幕 + 对齐音轨，NVENC）→ 成片。
+
+分步也能跑：`--from mouth|song|push|record|sync` 从任一步续，`--skip-sub` 不出字幕。
+
+- **一首歌一条 motion3、一次触发**。早期按段投递（`sing-play.mjs`）会因为页面时钟提前量让后半段口型对不上，已降级为历史方案，不要再用于出片。
+- **身体/头/表情**全部来自我们自己的段落预设（`scripts/l2d-song-presets.json`：sway / pose / tilt / lean / look / blink / brow / squint），曲线由 `l2d-compile.mjs` 生成——**不套官方表演片段**。
+- **手臂**由 `l2d-arm.mjs` 自己生成「首段抬手 → 中间段保持（不重抬）→ 末段收回」，姿态常量来自 `dict/l2d-arm-poses.json`（`gen-arm-poses.mjs` 从原片保持段量出的稳态关节值）。`Movement1/2/3` 只会有一个是 1，手掌细分（`Param11`、`Param27–32`）一并推到位，所以抬手不丢姿态、也不会「多一条手臂」。想退回官方原片重映射：`--arm clip`。
+- **口型**从干声算，整首切片后连续（实测 41 段接缝 0 跳变）；静默段补轻微呼吸口型，但只在第一句人声之后补，前奏不会提前动嘴。`--mouth-lead 0.5` 默认补偿 `l2d-song` 包络平滑导致的半秒滞后。
+- **表情禁忌**：整脸换层表情（`key1/3/5/6/10`：黑脸、＞＜、屑屑眼、圈圈眼、钢盆）会顶掉嘴部动画，唱歌别用；只用 `key4` 爱心眼、`key7` 脸红、`key9` 兔牙。
+- **出片档位** `--speed high|balanced|fast`：默认 `balanced`（NVENC p5/cq28，比 CPU x264 crf19 快 3 倍、体积小 26%）；`high` 走 libx264 crf19 归档；`fast` 是 cq32 快出小样。
 - 日常表演/场景仍走字典 + `gen-scenes.mjs`（见 §5）。详见本地手册 `D:\DSH使用策略\手册\11-唱歌口型与成片.md`。
 
 ### 5. 动作语义字典（本仓库新增）

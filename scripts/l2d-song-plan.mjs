@@ -15,6 +15,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const args = process.argv.slice(2)
 const opt = (name, dflt) => {
@@ -23,7 +24,7 @@ const opt = (name, dflt) => {
 }
 const duration = Number(opt('duration', 36.7587))
 const out = opt('out', 'plan.json')
-const presetsFile = opt('presets', 'D:/DSH/tools/l2d-song-presets.json')
+const presetsFile = opt('presets', fileURLToPath(new URL('./l2d-song-presets.json', import.meta.url)))
 const guard = Number(opt('guard', 1.3))
 const sectionsArg = opt('sections', '')
 

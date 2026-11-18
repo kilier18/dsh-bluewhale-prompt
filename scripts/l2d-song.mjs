@@ -13,8 +13,8 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const RVC = 'D:/AI/RVCover'
-const FFMPEG = path.join(RVC, 'bin/ffmpeg.exe')
+const RVC = process.env.RVCOVER_DIR || 'D:/AI/RVCover'
+const FFMPEG = process.env.FFMPEG || path.join(RVC, 'bin/ffmpeg.exe')
 
 const argv = process.argv.slice(2)
 let src = '', out = '', fps = 25

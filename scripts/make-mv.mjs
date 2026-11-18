@@ -30,7 +30,8 @@ const has = (k) => argv.includes(k)
 const SONG = path.resolve(get('--song', ''))
 const VOCAL = path.resolve(get('--vocal', ''))
 const LYRICS = get('--lyrics', '') ? path.resolve(get('--lyrics', '')) : ''
-const OUT = path.resolve(get('--out', path.join(process.cwd(), '成片.mp4')))
+const ODIR = get('--odir', 'F:/Users/pinn/Videos')   // 成品默认落这里
+const OUT = path.resolve(get('--out', path.join(ODIR, `${path.basename(SONG).replace(/\.[^.]+$/, '')}-成片.mp4`)))
 const FONT = get('--font', 'LXGW Marker Gothic')
 const SIZE = get('--size', '60')
 const WIDTH = get('--width', '0.32')
@@ -42,6 +43,15 @@ const CANVAS = get('--canvas', '')
 const FROM = get('--from', '')
 const SKIP_SUB = has('--skip-sub')
 const SEED = get('--seed', String(Math.floor(Math.random() * 1e6)))
+
+// 出片档位：high=CPU x264 最高质量 / balanced=GPU 均衡（默认）/ fast=GPU 最快
+const SPEED = get('--speed', 'balanced')
+const ENC_ARGS = (() => {
+  const pix = ['-pix_fmt', 'yuv420p', '-movflags', '+faststart']
+  if (SPEED === 'high') return ['-c:v', 'libx264', '-crf', get('--crf', '19'), '-preset', 'medium', ...pix]
+  if (SPEED === 'fast') return ['-c:v', 'h264_nvenc', '-preset', 'p4', '-cq', get('--cq', '32'), '-b:v', '0', ...pix]
+  return ['-c:v', 'h264_nvenc', '-preset', 'p5', '-cq', get('--cq', '28'), '-b:v', '0', '-spatial-aq', '1', '-temporal-aq', '1', ...pix]
+})()
 
 if (!SONG || !fs.existsSync(SONG)) { console.error('缺少 --song <音频文件>'); process.exit(1) }
 if (!VOCAL || !fs.existsSync(VOCAL)) { console.error('缺少 --vocal <纯干声 wav>（口型必须用干声算，别用混音）'); process.exit(1) }
@@ -120,16 +130,29 @@ if (FROM === 'sync' || !FROM) {
   const RECPATH = path.join(REC, rec.f)
   const off = Number((spawnSync(process.execPath, [path.join(HERE, 'sync-offset.mjs'), RECPATH, SONG], { encoding: 'utf8', env: { ...process.env, FFMPEG } }).stdout || '0').trim())
   log(`音画偏移 ${off.toFixed(3)}s → 画面从 ${(off - 0.2).toFixed(3)}s 起，音轨延迟 200ms`)
-  const raw = path.join(WORK, 'mux.mp4')
-  run(FFMPEG, ['-y', '-v', 'error', '-ss', String(Math.max(0, off - 0.2)), '-i', RECPATH, '-i', SONG,
-    '-filter_complex', '[1:a]adelay=200|200,apad=pad_dur=3[a]', '-map', '0:v', '-map', '[a]',
-    '-c:v', 'libx264', '-crf', '19', '-c:a', 'aac', '-b:a', '192k', '-t', String(dur + 1.0), raw])
-  if (SKIP_SUB || !LYRICS) {
-    fs.copyFileSync(raw, OUT)
-    log(`完成（无字幕）：${OUT}`)
-    process.exit(0)
+
+  // 字幕先只生成 ASS（不编码）
+  let assFile = ''
+  if (!SKIP_SUB && LYRICS) {
+    const r = spawnSync(process.execPath, [path.join(HERE, 'add-lyrics.mjs'), '--video', RECPATH, '--lyrics', LYRICS,
+      '--out', OUT, '--stack', '1', '--width', WIDTH, '--size', SIZE, '--margin', MARGIN, '--shift', SHIFT,
+      '--font', FONT, '--ass-only'], { encoding: 'utf8' })
+    const m = /ASS_ONLY (.+)$/m.exec(r.stdout || '')
+    if (!m) { console.error('字幕生成失败\n' + (r.stdout || '') + (r.stderr || '')); process.exit(1) }
+    assFile = m[1].trim()
+    log(`字幕 → ${path.basename(assFile)}`)
   }
-  run(process.execPath, [path.join(HERE, 'add-lyrics.mjs'), '--video', raw, '--lyrics', LYRICS, '--out', OUT,
-    '--stack', '1', '--width', WIDTH, '--size', SIZE, '--margin', MARGIN, '--shift', SHIFT, '--font', FONT])
+
+  // 一遍过：裁剪 + 字幕 + 音轨对齐 + 编码（不再分两次重编码）
+  const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:')
+  const fonts = path.join(REPO, 'fonts')
+  const sub = assFile
+    ? `subtitles='${esc(assFile)}'${fs.existsSync(fonts) ? `:fontsdir='${esc(fonts)}'` : ''}:wrap_unicode=1`
+    : ''
+  const fg = `${sub ? `[0:v]${sub}[v];` : ''}[1:a]adelay=200|200,apad=pad_dur=3[a]`
+  run(FFMPEG, ['-y', '-v', 'error', '-ss', String(Math.max(0, off - 0.2)), '-i', RECPATH, '-i', SONG,
+    '-filter_complex', fg,
+    '-map', sub ? '[v]' : '0:v', '-map', '[a]',
+    ...ENC_ARGS, '-c:a', 'aac', '-b:a', '192k', '-t', String(dur + 1.0), OUT])
 }
 log(`完成：${OUT}  (${(fs.statSync(OUT).size / 1048576).toFixed(1)}MB)`)

@@ -25,6 +25,18 @@ import { execFileSync } from 'node:child_process'
 
 const args = process.argv.slice(2)
 const opt = (n, d) => { const i = args.indexOf('--' + n); return i >= 0 && args[i + 1] ? args[i + 1] : d }
+const has = (n) => args.includes('--' + n)
+
+/** 编码参数：默认走 GPU（NVENC），速度约 CPU x264 的 3 倍、体积更小 */
+function videoEncoderArgs() {
+  const enc = opt('encoder', 'nvenc')
+  const pix = ['-pix_fmt', 'yuv420p', '-movflags', '+faststart']
+  if (enc === 'x264') {
+    return ['-c:v', 'libx264', '-crf', String(opt('crf', 20)), '-preset', opt('preset', 'medium'), ...pix]
+  }
+  return ['-c:v', 'h264_nvenc', '-preset', opt('preset', 'p5'), '-cq', String(opt('cq', 30)),
+    '-b:v', '0', '-spatial-aq', '1', '-temporal-aq', '1', ...pix]
+}
 
 const VIDEO = opt('video', '')
 const LYRICS = opt('lyrics', '')
@@ -184,6 +196,12 @@ const assFile = OUT.replace(/\.[^.]+$/, '.ass')
 fs.writeFileSync(assFile, ass.join('\n'), 'utf8')
 console.log(`歌词 ${lines.length} 行 → ${assFile}`)
 
+// 只出 ASS（给 make-mv 的单遍合成用）
+if (has('ass-only')) {
+  console.log(`ASS_ONLY ${assFile}`)
+  process.exit(0)
+}
+
 // ---------- 压硬字幕 ----------
 const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:')
 const vf = fs.existsSync(FONTS_DIR)
@@ -192,7 +210,7 @@ const vf = fs.existsSync(FONTS_DIR)
 execFileSync(FFMPEG, [
   '-y', '-v', 'error', '-i', VIDEO,
   '-vf', vf,
-  '-c:v', 'libx264', '-crf', '18', '-preset', 'medium',
+  ...videoEncoderArgs(),
   '-c:a', 'copy',
   OUT,
 ], { stdio: 'inherit' })
