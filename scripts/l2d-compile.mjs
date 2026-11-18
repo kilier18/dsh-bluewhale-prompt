@@ -215,6 +215,35 @@ function kTilt(a, params, out) {
   out.push(holdTrack('PositionZ', -3 * s, at, dur, params, { label: '歪头·后靠', action: 'tilt', fade: 0.8 }))
 }
 
+/** 眉毛上扬 / 压低：小表情的主力通道（不换脸、不影响嘴型）。 */
+function kBrow(a, params, out) {
+  const s = num(a.strength, 1)
+  const dur = num(a.duration, 1.6)
+  const at = num(a.at, 0)
+  const dir = String(a.dir || 'up').toLowerCase() === 'down' ? -1 : 1
+  out.push(holdTrack('ParamBrowLY', dir * 2.2 * s, at, dur, params, { label: '左眉', action: 'brow', fade: 0.5 }))
+  out.push(holdTrack('ParamBrowRY', dir * 2.2 * s, at, dur, params, { label: '右眉', action: 'brow', fade: 0.5 }))
+  if (dir > 0 && num(a.inner, 1)) out.push(holdTrack('BrowInnerUp', 0.6 * s, at, dur, params, { label: '眉内挑', action: 'brow', fade: 0.5 }))
+}
+
+/** 眯眼：笑眼 / 认真 / 享受，量小但观感明显。 */
+function kSquint(a, params, out) {
+  const s = num(a.strength, 1)
+  const dur = num(a.duration, 1.4)
+  const at = num(a.at, 0)
+  out.push(holdTrack('REyeSquint', 0.55 * s, at, dur, params, { label: '眯眼右', action: 'squint' }))
+  out.push(holdTrack('LEyeSquint', 0.55 * s, at, dur, params, { label: '眯眼左', action: 'squint' }))
+}
+
+/** 嘴形：把「一直半张」换成随乐句变化的微笑/收唇角。 */
+function kMouthForm(a, params, out) {
+  const v = num(a.value, 0.6)
+  const dur = num(a.duration, 2.0)
+  const at = num(a.at, 0)
+  out.push(holdTrack('ParamMouthForm', v, at, dur, params, { label: '嘴形', action: 'mouthForm', fade: 0.6 }))
+  if (num(a.smile, 0)) out.push(holdTrack('EyeSmile', num(a.smile, 0), at, dur, params, { label: '笑眼', action: 'mouthForm', fade: 0.6 }))
+}
+
 function kSmile(a, params, out) {
   const s = num(a.strength, 1)
   const dur = num(a.duration, 2.4)
@@ -487,6 +516,9 @@ export function compilePlan(plan, opts = {}) {
       case 'twist': kTwist(a, params, tracks); break
       case 'trajectory': kTrajectory(a, params, tracks); break
       case 'gesture': kGesture(a, params, tracks, opts); break
+      case 'brow': kBrow(a, params, tracks); break
+      case 'squint': kSquint(a, params, tracks); break
+      case 'mouthForm': kMouthForm(a, params, tracks); break
       case 'expression': kExpression(a, params, tracks, opts); break
       default:
         throw new CompileError(`未知 action.kind=${kind}（可用：look/nod/shake_head/tilt/sway/smile/blink/talk/pose/trajectory/gesture/expression）`)

@@ -126,12 +126,29 @@ function sampleAt(pts, t) {
 function mouthSlice(mouthCurve, t0, t1, fps) {
   const pts = parseSegments(mouthCurve.Segments)
   const n = Math.max(1, Math.round((t1 - t0) * fps))
-  const out = [0, Math.max(0, Math.min(1, sampleAt(pts, t0)))]
-  for (let i = 1; i <= n; i++) {
+  const raw = []
+  for (let i = 0; i <= n; i++) {
     const t = Math.min(t1, t0 + i / fps)
-    const v = Math.max(0, Math.min(1, sampleAt(pts, t)))
-    out.push(0, Number((t - t0).toFixed(4)), Number(v.toFixed(5)))
+    raw.push(Math.max(0, Math.min(1, sampleAt(pts, t))))
   }
+  // 2026-11-18h：源音频收尾（器乐段）口型本来全 0，读起来像「人死了」。
+  // 连续 >0.25s 的静默里补一条 0.02~0.10 的呼吸小张口，肉眼几乎看不出，但脸是活的。
+  const quiet = Math.round(0.25 * fps)
+  let i = 0
+  while (i < raw.length) {
+    if (raw[i] > 0.02) { i++; continue }
+    let j = i
+    while (j < raw.length && raw[j] <= 0.02) j++
+    if (j - i >= quiet) {
+      for (let k = i; k < j; k++) {
+        const local = (k - i) / fps
+        raw[k] = Number((0.03 + 0.035 * (0.5 + 0.5 * Math.sin(local * 2.6))).toFixed(4))
+      }
+    }
+    i = j
+  }
+  const out = [0, Number(raw[0].toFixed(5))]
+  for (let k = 1; k <= n; k++) out.push(0, Number((k / fps).toFixed(4)), Number(raw[k].toFixed(5)))
   return out
 }
 
