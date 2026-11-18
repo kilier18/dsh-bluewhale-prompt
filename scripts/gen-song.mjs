@@ -28,6 +28,34 @@ import { compose } from './l2d-compose.mjs'
 import { synthArm, mergeArm } from './l2d-arm.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
+
+// 2026-11-18c：成品曲线速率限制。语义层叠加 + 多段拼接后，个别接缝会出现瞬时跳变（观感抽搐），
+// 这里按关节角速度上限削平，写在 motion3 成品上，与编译顺序无关。
+const RATE_LIMIT = { AngleX: 130, AngleY: 130, AngleZ: 130, PositionX: 220, PositionY: 220, PositionZ: 220, LeanInput: 110, ShoulderX: 150 }
+function rateLimitCurves(motion) {
+  for (const c of motion.Curves) {
+    const lim = RATE_LIMIT[c.Id]
+    if (!lim) continue
+    const seg = c.Segments
+    if (!Array.isArray(seg) || seg.length < 5) continue
+    // 只处理全 linear（type 0）曲线
+    let linear = true
+    for (let i = 2; i < seg.length; i += 3) if (seg[i] !== 0) { linear = false; break }
+    if (!linear) continue
+    let pt = [seg[0], seg[1]]
+    for (let i = 2; i < seg.length; i += 3) {
+      const t = seg[i + 1], v = seg[i + 2]
+      const dt = Math.max(t - pt[0], 1e-4)
+      const maxD = lim * dt
+      let nv = v
+      if (nv - pt[1] > maxD) nv = pt[1] + maxD
+      else if (pt[1] - nv > maxD) nv = pt[1] - maxD
+      seg[i + 2] = Math.round(nv * 1e6) / 1e6
+      pt = [t, nv]
+    }
+  }
+}
+
 const REPO = path.resolve(HERE, '..')
 
 // ---------- 参数 ----------
@@ -163,7 +191,8 @@ function segmentActions(section, len, rep) {
 }
 
 const ARM_CLIP = { hand: '正常说话-抚胸', point: '正常说话-食指' }
-const armFor = (section) => (section === 'chorus' ? 'point' : 'hand')
+// 整首歌只用一个手势（抚胸通用），中途换手会破坏「长时间保持」并且必然出现换手硬切
+const armFor = (_section) => 'hand'
 const ARM_MODE = String(opt('arm', 'synth')) // synth = 自己生成手臂曲线（默认）；clip = 重映射官方原片
 
 // ---------- 主流程 ----------
@@ -237,10 +266,12 @@ names.forEach((section, i) => {
       return
     }
   } else {
-    // 自己生成手臂曲线：抬手 1.1s → 保持 → 收回 2.0s；Movement 三兄弟只会有一个是 1
-    const rise = Math.min(1.1, Math.max(0.5, len * 0.18))
-    const fall = Math.min(2.0, Math.max(0.8, len * 0.22))
-    const a = synthArm(arm, len, { rise, fall, fps: FPS })
+    // 自己生成手臂曲线：整首歌只在首段抬手、末段收回，中段一直保持（否则手一直在摆）
+    const isFirst = i === 0
+    const isLast = i === names.length - 1
+    const rise = isFirst ? Math.min(1.4, Math.max(0.9, len * 0.25)) : 0.05
+    const fall = isLast ? Math.min(2.2, Math.max(1.2, len * 0.3)) : 0.05
+    const a = synthArm(arm, len, { rise, fall, fps: FPS, fromMix: isFirst ? 0 : 1, toMix: isLast ? 0 : 1 })
     motion = mergeArm(baked, a, { fade: 0 })
   }
 
@@ -249,6 +280,30 @@ names.forEach((section, i) => {
     const seg = mouthSlice(mouth.curve, at, at + len, FPS)
     motion.Curves = motion.Curves.filter((c) => c.Id !== 'ParamMouthOpenY')
     motion.Curves.push({ Target: 'Parameter', Id: 'ParamMouthOpenY', Segments: seg })
+    // ⚠️ 必须重算 Meta：Cubism 按 CurveCount 读曲线，少 1 就等于把最后这条（口型）丢掉
+    let segs = 0
+    let points = 0
+    for (const c of motion.Curves) {
+      const n = Math.max(0, Math.round((c.Segments.length - 2) / 3))
+      segs += n
+      points += n + 1
+    }
+    motion.Meta.CurveCount = motion.Curves.length
+    motion.Meta.TotalSegmentCount = segs
+    motion.Meta.TotalPointCount = points
+  }
+  rateLimitCurves(motion)
+  // 限速后重新统计段数/点数
+  {
+    let segs = 0, points = 0
+    for (const c of motion.Curves) {
+      const n = Math.max(0, Math.round((c.Segments.length - 2) / 3))
+      segs += n
+      points += n + 1
+    }
+    motion.Meta.CurveCount = motion.Curves.length
+    motion.Meta.TotalSegmentCount = segs
+    motion.Meta.TotalPointCount = points
   }
   motion.Meta.FadeInTime = FADE
   motion.Meta.FadeOutTime = FADE

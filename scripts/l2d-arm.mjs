@@ -56,8 +56,9 @@ function defaultValue(id) {
  * 生成一条曲线：默认值 → 稳态 → 默认值，升降都按 smoothstep 采样
  * @returns {{Id:string, Segments:number[]}}
  */
-function rampCurve(id, target, duration, { rise, holdAt, fall, fps }) {
-  const d0 = defaultValue(id)
+function rampCurve(id, target, duration, { rise, holdAt, fall, fps, from, to }) {
+  const d0 = from === undefined ? defaultValue(id) : Number(from)
+  const dEnd = to === undefined ? d0 : Number(to)
   const d1 = Number(target ?? d0)
   const t1 = Math.max(0.02, rise)
   const t2 = Math.min(duration - 0.02, Math.max(t1 + 0.05, holdAt))
@@ -65,17 +66,25 @@ function rampCurve(id, target, duration, { rise, holdAt, fall, fps }) {
   const seg = [0, Number(d0.toFixed(6))]
   const step = 1 / fps
   const push = (t, v) => seg.push(0, Number(t.toFixed(5)), Number(v.toFixed(6)))
+  const up = Math.abs(d1 - d0) < 1e-6 ? 0 : t1
+  const down = Math.abs(dEnd - d1) < 1e-6 ? 0 : Math.max(0.02, Math.min(f, duration - up - 0.002))
+  const holdEnd = Math.max(up + 0.001, Math.min(duration - down, t2))
 
-  if (Math.abs(d1 - d0) < 1e-6) {
+  if (up === 0 && down === 0) {
     push(duration, d0)
     return { Id: id, Segments: seg }
   }
-  for (let t = step; t < t1; t += step) push(t, d0 + (d1 - d0) * smooth(t / t1))
-  push(t1, d1)
-  if (t2 > t1 + 1e-3) push(t2, d1)
-  for (let t = step; t < f; t += step) push(t2 + t, d1 + (d0 - d1) * smooth(t / f))
-  push(Math.min(duration, t2 + f), d0)
-  if (seg[seg.length - 2] < duration - 1e-4) push(duration, d0)
+  if (up > 0) {
+    for (let t = step; t < up; t += step) push(t, d0 + (d1 - d0) * smooth(t / up))
+    push(up, d1)
+  }
+  if (holdEnd > (up || 0.001) + 1e-3) push(holdEnd, d1)
+  if (down > 0) {
+    const base = up > 0 ? holdEnd : 0.0
+    for (let t = step; t < down; t += step) push(base + t, d1 + (dEnd - d1) * smooth(t / down))
+    push(Math.min(duration, base + down), dEnd)
+  }
+  if (seg[seg.length - 2] < duration - 1e-4) push(duration, dEnd)
   return { Id: id, Segments: seg }
 }
 
@@ -86,6 +95,9 @@ function rampCurve(id, target, duration, { rise, holdAt, fall, fps }) {
  *        rise 抬起时长；fall 收回时长；fadeOutHold 保持段结束时刻（缺省 duration-fall）
  */
 export function synthArm(poseKey, duration, opts = {}) {
+  // fromMix / toMix：1 = 姿势已就位（不做升降），0 = 默认（放下）。跨段连续保持靠这两个
+  const fromMix = Math.max(0, Math.min(1, Number(opts.fromMix ?? 0)))
+  const toMix = Math.max(0, Math.min(1, Number(opts.toMix ?? 0)))
   const all = poses()
   const pose = all[poseKey]
   if (!pose) throw new Error(`没有这个手势的姿态常量：${poseKey}（现有 ${Object.keys(all).join(', ')}）`)
@@ -96,14 +108,26 @@ export function synthArm(poseKey, duration, opts = {}) {
   const active = MOVEMENT_IDS.find((m) => Number(pose.joints[m] ?? 0) > 0.5) || 'Movement2'
 
   const curves = []
+  const mix = (def, tgt, m) => Number((def + (tgt - def) * m).toFixed(6))
   for (const id of ARM_IDS) {
+    const dDef = defaultValue(id)
     if (MOVEMENT_IDS.includes(id)) {
       const target = id === active ? 1 : 0
-      curves.push(rampCurve(id, target, duration, { rise, holdAt, fall, fps }))
+      const tgt = target || 0
+      curves.push(rampCurve(id, tgt, duration, {
+        rise, holdAt, fall, fps,
+        from: mix(dDef, tgt, fromMix),
+        to: mix(dDef, tgt, toMix),
+      }))
       continue
     }
     if (!(id in pose.joints)) continue
-    curves.push(rampCurve(id, pose.joints[id], duration, { rise, holdAt, fall, fps }))
+    const tgt = Number(pose.joints[id])
+    curves.push(rampCurve(id, tgt, duration, {
+      rise, holdAt, fall, fps,
+      from: mix(dDef, tgt, fromMix),
+      to: mix(dDef, tgt, toMix),
+    }))
   }
   return {
     arm: poseKey,

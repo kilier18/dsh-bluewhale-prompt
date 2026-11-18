@@ -176,7 +176,6 @@ function kTilt(a, params, out) {
   const s = num(a.strength, 1)
   const dur = num(a.duration, 2.2)
   const at = num(a.at, 0)
-  out.push(holdTrack('AngleZ', dir * 19 * s, at, dur, params, { label: '歪头', action: 'tilt', fade: 0.7 }))
   out.push(holdTrack('PositionZ', -dir * 9 * s, at, dur, params, { label: '歪头纵深', action: 'tilt', fade: 0.7 }))
 }
 
@@ -262,16 +261,48 @@ function kTwist(a, params, out) {
 }
 
 function kSway(a, params, out) {
-  // 身体摇晃：不换手势，只让重心缓慢摆（唱歌/长时保持姿势时的「底噪」）
+  // 身体摇晃：不换手势，只让重心/侧身/前倾缓慢摆（唱歌长时保持时的「底噪」）
+  // 2026-11-18b：加大幅度到官方表演量级；lean/bias 给「一直偏向一侧」的撒娇式姿态
   const dur = num(a.duration, 8)
   const at = num(a.at, 0)
   const s = num(a.strength, 1)
-  const period = Math.max(3, Math.min(16, num(a.period, 8)))
+  const lean = num(a.lean, 0)      // 静态前倾偏移（负=后仰）
+  const bias = num(a.bias, 0)      // 静态侧倾偏移（AngleZ）
+  const period = Math.max(3, Math.min(18, num(a.period, 8)))
   const cycles = Math.max(1, Math.round(dur / period))
-  // 2026-11-18：AngleZ 归 tilt 独占，sway 只做重心/前倾/头部小摆，
-  // 否则「摇晃 + 歪头」必然撞车（声音在唱歌时两边都要用）
-  out.push(waves('PositionX', 2.4 * s, at, dur, cycles * 2, params, { label: '摇晃·重心', action: 'sway', symmetric: true }))
-  out.push(waves('LeanInput', 1.1 * s, at + 0.2, Math.max(0.5, dur - 0.2), cycles, params, { label: '摇晃·前倾', action: 'sway', symmetric: false }))
+  const add = (pid, amp, label, symmetric, off = 0) => {
+    const tr = waves(pid, amp, at, dur, cycles, params, { label, action: 'sway', symmetric })
+    if (off) for (const pt of tr.points) pt[1] = clamp(params, pid, pt[1] + off)
+    out.push(tr)
+  }
+  add('PositionX', 10 * s, '摇晃·重心', true)
+  add('LeanInput', 8 * s, '摇晃·前倾', false, lean)
+  // 侧身/扭身：AngleZ 是这张皮上唯一能看出「转身」的通道（ParamBodyAngle* 实测无效）
+  add('AngleZ', 15 * s, '摇晃·侧身', true, bias)
+}
+
+// 2026-11-18c：撒娇式的「低头 + 重心后甩 + 身体侧倾 + 位移」合成一段语义动作，
+// 与 sway 的常驻摇晃相加（ADDITIVE 参数会被合并成一条曲线），因此不必互相避让。
+function kLean(a, params, out) {
+  const dur = num(a.duration, 3)
+  const at = num(a.at, 0)
+  const s = num(a.strength, 1)
+  const head = num(a.head, -18)
+  const side = num(a.side, -12)
+  const weight = num(a.weight, -16)
+  const shiftX = num(a.shiftX, -12)
+  const depth = num(a.depth, -8)
+  const fade = Math.min(num(a.fade, 0.55), dur * 0.34)
+  const mk = (pid, value, label) => {
+    const tr = holdTrack(pid, value * s, at, dur, params, { label, action: 'lean', blend: 'add' })
+    tr.fade = fade
+    out.push(tr)
+  }
+  mk('AngleX', head, '倾斜·低头')
+  mk('AngleZ', side, '倾斜·侧身')
+  mk('LeanInput', weight, '倾斜·重心')
+  if (shiftX) mk('PositionX', shiftX * 0.8, '倾斜·位移')
+  if (depth) mk('PositionZ', depth, '倾斜·纵深')
 }
 
 function kExpression(a, params, out, opts) {
@@ -411,6 +442,7 @@ export function compilePlan(plan, opts = {}) {
       case 'shake_head': kNod(a, params, tracks, true); break
       case 'tilt': kTilt(a, params, tracks); break
       case 'sway': kSway(a, params, tracks); break
+      case 'lean': kLean(a, params, tracks); break
       case 'smile': kSmile(a, params, tracks); break
       case 'blink': kBlink(a, params, tracks); break
       case 'talk': kTalk(a, params, tracks); break
@@ -425,6 +457,67 @@ export function compilePlan(plan, opts = {}) {
     }
     if (tracks.length === before) throw new CompileError(`第 ${idx + 1} 段 ${kind} 没有产生任何参数`)
   })
+
+  // 2026-11-18c：肢体层（头/身/重心）默认「相加」而不是报冲突——
+  // sway 是常驻底噪，lean/pose/look 只是往上叠一个偏移，符合真人动作的叠加关系。
+  const ADDITIVE = new Set(['AngleX', 'AngleY', 'AngleZ', 'PositionX', 'PositionY', 'PositionZ', 'LeanInput', 'ShoulderX'])
+  {
+    const groups = new Map()
+    for (let i = 0; i < tracks.length; i++) {
+      const t = tracks[i]
+      if (!ADDITIVE.has(t.id) || t.stage === 'expression') continue
+      if (!groups.has(t.id)) groups.set(t.id, [])
+      groups.get(t.id).push(i)
+    }
+    const drop = new Set()
+    for (const [pid, idxs] of groups) {
+      if (idxs.length < 2) continue
+      const list = idxs.map((i) => tracks[i])
+      const t0 = Math.min(...list.map((t) => t.start))
+      const t1 = Math.max(...list.map((t) => t.start + t.duration))
+      const step = 1 / 60
+      const pts = []
+      for (let t = t0; t <= t1 + 1e-9; t += step) {
+        let v = 0
+        for (const tr of list) {
+          const local = t - tr.start
+          if (local < -1e-9 || local > tr.duration + 1e-9) continue
+          const f = tr.points[0][0]
+          if (local < f) continue            // 起点前不贡献，避免凭空跳变
+          v += samplePoints(tr.points, local)
+        }
+        pts.push([Math.round(t * 1e5) / 1e5, clamp(params, pid, v)])
+      }
+      const merged = {
+        id: pid, start: t0, duration: t1 - t0, points: pts,
+        action: 'mix', label: `叠加·${pid}`, owner: 'semantic', stage: 'motion',
+      }
+      for (const i of idxs) drop.add(i)
+      tracks.push(merged)
+    }
+    if (drop.size) {
+      const kept = tracks.filter((_, i) => !drop.has(i))
+      tracks.length = 0
+      tracks.push(...kept)
+    }
+  }
+
+  // 2026-11-18c：速率限制（rate limit）——叠加出来的曲线可能出现瞬时跳变（各源轨起点/波谷错位），
+  // 这里按「真人关节角速度上限」把相邻点的大跳变削平，观感上就是顺滑过渡而不是抽搐。
+  {
+    const LIMIT = { AngleX: 130, AngleY: 130, AngleZ: 130, PositionX: 220, PositionY: 220, PositionZ: 220, LeanInput: 110, ShoulderX: 150 }
+    for (const tr of tracks) {
+      const lim = LIMIT[tr.id]
+      if (!lim || !tr.points || tr.points.length < 3) continue
+      for (let i = 1; i < tr.points.length; i++) {
+        const [t0, v0] = tr.points[i - 1]
+        const [t1, v1] = tr.points[i]
+        const maxD = lim * Math.max(t1 - t0, 1e-4)
+        if (v1 - v0 > maxD) tr.points[i][1] = v0 + maxD
+        else if (v0 - v1 > maxD) tr.points[i][1] = v0 - maxD
+      }
+    }
+  }
 
   // 冲突检测：同一参数、都非 overlay、时间重叠 > EPS
   const byId = new Map()
@@ -483,6 +576,22 @@ export function compilePlan(plan, opts = {}) {
       exitFade: EXIT_FADE,
     },
   }
+}
+
+function samplePoints(pts, t) {
+  if (!pts || !pts.length) return 0
+  if (t <= pts[0][0]) return pts[0][1]
+  const last = pts[pts.length - 1]
+  if (t >= last[0]) return last[1]
+  let lo = 0, hi = pts.length - 1
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1
+    if (pts[mid][0] <= t) lo = mid; else hi = mid
+  }
+  const [ta, va] = pts[lo]
+  const [tb, vb] = pts[hi]
+  const k = tb - ta < 1e-9 ? 0 : (t - ta) / (tb - ta)
+  return va + (vb - va) * k
 }
 
 function num(v, d) {
