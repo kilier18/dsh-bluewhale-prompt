@@ -12,3 +12,7 @@ node_modules/
 # 临时与打包
 .tmp/
 *.zip
+
+# 字幕字体（体积大，用 scripts/get-fonts.mjs 下载）
+fonts/*.ttf
+fonts/*.otf

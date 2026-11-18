@@ -35,10 +35,18 @@ const FFPROBE = process.env.FFPROBE || 'D:/AI/RVCover/bin/ffprobe.exe'
 const SIZE_OPT = opt('size', '')
 const COLOR = opt('color', '#FFFFFF')
 const STROKE = Number(opt('stroke', 5))
-const MARGIN = Number(opt('margin', 150))
+const MARGIN = Number(opt('margin', ''))   // 底部/顶部边距；不传则按画幅 9% 算
 const ALIGN = opt('align', '2')
 const MAXLINES = Number(opt('maxlines', 2))
-const FONT = opt('font', 'Microsoft YaHei')
+const FONT = opt('font', 'LXGW WenKai')   // 默认霞鹜文楷（仓库 fonts/ 里自带，随插件分发）
+const FONTS_DIR = opt('fontsdir', path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', 'fonts'))
+const MARGIN_L = opt('marginl', '')
+const MARGIN_R = opt('marginr', '')
+// 「左下角三分之一」这类排版：--align 1 --width 0.34（占总宽比例）
+const WIDTH_RATIO = opt('width', '')
+const SHIFT = Number(opt('shift', 0))
+const STACK = opt('stack', '') === '1'   // 双语叠行：时间戳相同(±gap)的多行合成一句，用 \\N 分两行
+const STACK_GAP = Number(opt('gap', 0.25))   // 整条字幕整体平移（秒）：成片音频比画面晚多少就填多少
 
 if (!VIDEO || !LYRICS) { console.error('需要 --video 与 --lyrics'); process.exit(1) }
 if (!fs.existsSync(VIDEO) || !fs.existsSync(LYRICS)) { console.error('文件不存在'); process.exit(1) }
@@ -118,6 +126,7 @@ if (isLRC) {
 }
 
 lines.sort((a, b) => a.t - b.t)
+if (SHIFT) for (const l of lines) l.t = Math.max(0, l.t + SHIFT)
 if (!lines.length) { console.error('没解析出歌词行'); process.exit(1) }
 
 const videoDur = Number(execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', VIDEO], { encoding: 'utf8' }).trim())
@@ -141,16 +150,31 @@ const toAss = (hex, alpha = '00') => {
   return `&H${alpha}${b}${g}${r}`.toUpperCase()
 }
 const SIZE = SIZE_OPT ? Number(SIZE_OPT) : Math.round(VH * 0.045)
-ass.push(`Style: Lyric,${FONT},${SIZE},${toAss(COLOR)},${toAss('#8AD8FF')},${toAss('#000000')},${toAss('#000000','80')},1,0,0,0,100,100,1,0,1,${STROKE},2,${ALIGN},60,60,${MARGIN},1`)
+const padL = Number(MARGIN_L !== '' ? MARGIN_L : Math.round(VW * 0.055))
+const padR = Number(MARGIN_R !== '' ? MARGIN_R : (WIDTH_RATIO ? Math.round(VW * (1 - 0.055 - Number(WIDTH_RATIO))) : Math.round(VW * 0.055)))
+const padV = Number(MARGIN !== '' ? MARGIN : Math.round(VH * 0.09))
+ass.push(`Style: Lyric,${FONT},${SIZE},${toAss(COLOR)},${toAss('#8AD8FF')},${toAss('#000000')},${toAss('#000000','80')},1,0,0,0,100,100,1,0,1,${STROKE},2,${ALIGN},${padL},${padR},${padV},1`)
 ass.push('')
 ass.push('[Events]')
 ass.push('Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text')
 
-for (let i = 0; i < lines.length; i++) {
-  const start = lines[i].t
-  const next = i + 1 < lines.length ? lines[i + 1].t : Math.min(videoDur, start + 4)
+// 双语叠行：把时间戳相近的行并成一条 cue（文件里日文在前、中文在后 → 日上中下）
+let cues = lines.map((l) => ({ t: l.t, texts: [l.text] }))
+if (STACK) {
+  const grouped = []
+  for (const l of lines) {
+    const last = grouped[grouped.length - 1]
+    if (last && Math.abs(l.t - last.t) <= STACK_GAP) last.texts.push(l.text)
+    else grouped.push({ t: l.t, texts: [l.text] })
+  }
+  cues = grouped
+}
+
+for (let i = 0; i < cues.length; i++) {
+  const start = cues[i].t
+  const next = i + 1 < cues.length ? cues[i + 1].t : Math.min(videoDur, start + 4)
   const end = Math.max(start + 0.6, Math.min(next - 0.02, start + 6))
-  const text = lines[i].text.replace(/\n/g, '\\N')
+  const text = cues[i].texts.map((t) => t.trim()).filter(Boolean).join('\\N')
   ass.push(`Dialogue: 0,${fmt(start)},${fmt(end)},Lyric,,0,0,0,,${text}`)
 }
 
@@ -159,7 +183,10 @@ fs.writeFileSync(assFile, ass.join('\n'), 'utf8')
 console.log(`歌词 ${lines.length} 行 → ${assFile}`)
 
 // ---------- 压硬字幕 ----------
-const vf = `subtitles='${assFile.replace(/\\/g, '/').replace(/:/g, '\\:')}'`
+const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:')
+const vf = fs.existsSync(FONTS_DIR)
+  ? `subtitles='${esc(assFile)}':fontsdir='${esc(FONTS_DIR)}'`
+  : `subtitles='${esc(assFile)}'`
 execFileSync(FFMPEG, [
   '-y', '-v', 'error', '-i', VIDEO,
   '-vf', vf,
