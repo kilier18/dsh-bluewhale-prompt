@@ -487,7 +487,7 @@ export function compilePlan(plan, opts = {}) {
   if (version !== 1) throw new CompileError(`不支持的 plan.version=${version}`)
   const actions = plan.actions
   if (!Array.isArray(actions) || actions.length < 1) throw new CompileError('plan.actions 不能为空')
-  if (actions.length > 64) throw new CompileError(`plan.actions 最多 64 段，收到 ${actions.length}`)
+  if (actions.length > 4000) throw new CompileError(`plan.actions 最多 4000 段，收到 ${actions.length}`)
 
   const tracks = []
   const steps = []
@@ -625,7 +625,7 @@ export function compilePlan(plan, opts = {}) {
   }
 
   const duration = Math.round((Math.max(...tracks.map((t) => t.start + t.duration)) + 0.7) * 1e4) / 1e4
-  if (duration > 60) throw new CompileError(`总时长 ${duration}s 超过 60s`)
+  if (duration > 1200) throw new CompileError(`总时长 ${duration}s 超过 1200s`)
 
   return {
     version: 1,
