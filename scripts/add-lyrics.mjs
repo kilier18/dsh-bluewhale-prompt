@@ -46,7 +46,9 @@ const MARGIN_R = opt('marginr', '')
 const WIDTH_RATIO = opt('width', '')
 const SHIFT = Number(opt('shift', 0))
 const STACK = opt('stack', '') === '1'   // 双语叠行：时间戳相同(±gap)的多行合成一句，用 \\N 分两行
-const STACK_GAP = Number(opt('gap', 0.25))   // 整条字幕整体平移（秒）：成片音频比画面晚多少就填多少
+const STACK_GAP = Number(opt('gap', 0.25))
+// CJK 断行：libass 只认 ASCII 空格，必须显式开 wrap_unicode=1 才会按 Unicode 规则折行
+const WRAP_UNICODE = opt('wrap', '1') !== '0'   // 整条字幕整体平移（秒）：成片音频比画面晚多少就填多少
 
 if (!VIDEO || !LYRICS) { console.error('需要 --video 与 --lyrics'); process.exit(1) }
 if (!fs.existsSync(VIDEO) || !fs.existsSync(LYRICS)) { console.error('文件不存在'); process.exit(1) }
@@ -185,8 +187,8 @@ console.log(`歌词 ${lines.length} 行 → ${assFile}`)
 // ---------- 压硬字幕 ----------
 const esc = (p) => p.replace(/\\/g, '/').replace(/:/g, '\\:')
 const vf = fs.existsSync(FONTS_DIR)
-  ? `subtitles='${esc(assFile)}':fontsdir='${esc(FONTS_DIR)}'`
-  : `subtitles='${esc(assFile)}'`
+  ? `subtitles='${esc(assFile)}':fontsdir='${esc(FONTS_DIR)}':wrap_unicode=${WRAP_UNICODE ? 1 : 0}`
+  : `subtitles='${esc(assFile)}':wrap_unicode=${WRAP_UNICODE ? 1 : 0}`
 execFileSync(FFMPEG, [
   '-y', '-v', 'error', '-i', VIDEO,
   '-vf', vf,
