@@ -134,7 +134,9 @@ function mouthSlice(mouthCurve, t0, t1, fps) {
   // 2026-11-18h：源音频收尾（器乐段）口型本来全 0，读起来像「人死了」。
   // 连续 >0.25s 的静默里补一条 0.02~0.10 的呼吸小张口，肉眼几乎看不出，但脸是活的。
   const quiet = Math.round(0.25 * fps)
-  let i = 0
+  // 只在「已经开唱之后」的静默里补呼吸，前奏/间奏开头仍然闭嘴（否则第一句还没来嘴就在动）
+  const firstVocal = raw.findIndex((v) => v > 0.06)
+  let i = firstVocal > 0 ? firstVocal : raw.length
   while (i < raw.length) {
     if (raw[i] > 0.02) { i++; continue }
     let j = i
@@ -248,6 +250,54 @@ const manifest = { duration: Number(total.toFixed(4)), fps: FPS, seg: SEG, mouth
 let cursor = 0
 let ok = 0
 const warnings = []
+
+// ---------- 单文件模式（--single）：整首歌一条 motion3 ----------
+// 为什么要有：分段播放要靠「按 audio.currentTime 投递下一段」，一旦投递早/晚就会出
+// 「最后一句没口型」「开头先动嘴」这类轴不对的问题。整首歌压成一条就没有任何跨段时序。
+if (opt('single', '') === '1') {
+  const all = []
+  let cur = 0
+  names.forEach((section, i) => {
+    const len = Number(lens[i].toFixed(4))
+    const rep = Math.floor(i / BLOCK.length)
+    for (const a of segmentActions(section, len, rep)) {
+      const b = { ...a }
+      b.at = Number(((Number(a.at) || 0) + cur).toFixed(4))
+      all.push(b)
+    }
+    cur += len
+  })
+  all.sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0))
+  const plan = { version: 1, title: '整首歌', duration: Number(cur.toFixed(4)), actions: all }
+  fs.writeFileSync(path.join(OUT, 'plan-all.json'), JSON.stringify(plan, null, 1), 'utf8')
+  const ir = compilePlan(plan)
+  const baked = bakeMotion(ir, { fps: FPS })
+  const arm = synthArm('hand', Number(cur.toFixed(4)), { rise: 1.4, fall: 2.2, fps: FPS, fromMix: 0, toMix: 0 })
+  const motion = mergeArm(baked, arm, { fade: 0 })
+  if (mouth) {
+    const seg = mouthSlice(mouth.curve, 0, cur, FPS)
+    motion.Curves = motion.Curves.filter((c) => c.Id !== 'ParamMouthOpenY')
+    motion.Curves.push({ Target: 'Parameter', Id: 'ParamMouthOpenY', Segments: seg })
+  }
+  rateLimitCurves(motion)
+  let segs = 0, points = 0
+  for (const c of motion.Curves) {
+    const n = Math.max(0, Math.round((c.Segments.length - 2) / 3))
+    segs += n; points += n + 1
+  }
+  motion.Meta.CurveCount = motion.Curves.length
+  motion.Meta.TotalSegmentCount = segs
+  motion.Meta.TotalPointCount = points
+  motion.Meta.Duration = Number(cur.toFixed(4))
+  const outFile = path.join(OUT, '唱歌-整首.motion3.json')
+  fs.writeFileSync(outFile, JSON.stringify(motion), 'utf8')
+  fs.writeFileSync(path.join(OUT, 'song.json'), JSON.stringify({
+    duration: Number(cur.toFixed(4)), fps: FPS, single: true,
+    segments: [{ name: '唱歌-整首', section: 'all', at: 0, duration: Number(cur.toFixed(4)), curves: motion.Curves.length }],
+  }, null, 1), 'utf8')
+  console.log(JSON.stringify({ single: true, out: outFile, duration: motion.Meta.Duration, curves: motion.Curves.length, warnings: ir.warnings }, null, 1))
+  process.exit(0)
+}
 
 names.forEach((section, i) => {
   const len = Number(lens[i].toFixed(4))
