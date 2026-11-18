@@ -2,7 +2,7 @@
 
 DeepSeek Harness（DSH）插件：让桌面上的 Live2D 桌宠「大肥鱼」和 DSH 里你选的那个会话说话——角色的回复带着表情和动作回到桌宠身上，桌宠还会**开口念出来**（Edge-TTS + RVC 鲸鱼娘音色）。附带一套**唱歌口型编排**工具链：一段干声 → 逐帧口型 + 表情动作 → OBS 录制 → 成片。
 
-本仓库是 [yangzhenghaniirs-code/blue-whale](https://github.com/yangzhenghaniirs-code/blue-whale) v0.3.0 的**本地改造分支**，已经加了大量自己写的功能（语音、唱歌、会话自愈、桌面动作协议），**不再跟随上游同步**。上游原版用来「装上就能聊」，本仓库用来「定档自己这一套」。
+本仓库是 [yangzhenghaniirs-code/blue-whale](https://github.com/yangzhenghaniirs-code/blue-whale) v0.3.0 的**本地改造分支**（当前 0.5.0），已经加了大量自己写的功能（语音、唱歌、会话自愈、桌面动作协议），**不再跟随上游同步**。上游原版用来「装上就能聊」，本仓库用来「定档自己这一套」。
 
 ## 这个仓库里有什么
 
@@ -15,7 +15,7 @@ src/
   dsh.js              直接调 DSH 会话（prompt + 按 rpcId 认轮），不走网络
   pet-rules.js        每句话前缀标签 + 附「桌宠规则.md」全文
   clean-text.js       markdown → 适合朗读的纯文字（保留 <|ACT|> 标记）
-  posemap.js          工具/事件 → 原子动作
+  posemap.js          工具/事件 → 动作 + 19 个 Agent 场景的复合动作表
   idle-motion.js      没有动作标记时补一个待机小动作
   outfit.js           换装用动作代替表情（表情会被下一个表情清掉）
   pet.js              随 DSH 启动/关闭桌宠
@@ -29,7 +29,7 @@ src/
   motions.js          动作白名单（从字典派生，库里没有的动作直接 404）
   cookie-cleaner.js   清 DSH 越攒越多的登录 Cookie（否则请求头超 16KB 打不开）
 dict/                 动作语义字典（44 条官方动作的实测拆解 + 参数表 + 表情表，见 dict/README.md）
-scripts/              字典/编排工具链：拉动作、拆字典、编译 plan、烘焙 motion3、合成手臂
+scripts/              字典/编排工具链：拉动作、拆字典、编译 plan、烘焙 motion3、合成手臂、生成场景动作
 locale/               中英文案
 桌宠规则.md            表情动作规则（每句话附在 prompt 后面；改完不用重启）
 ```
@@ -43,8 +43,15 @@ locale/               中英文案
 托盘右键「切换聊天」可换会话；DSH 重启换了新会话号时，插件会**自动跟随**当前活跃会话（手动切过的 10 分钟内受保护）。
 
 ### 2. 表情动作协议
-回复里写 `<|ACT {"motion":"Animation/原子-点头.motion3.json"}|>`，airi 会把标记当特殊 token 单独切块执行。动作库 105 条 / 7 组（Main / TrackingLost / Talk / Outfit / Emotion / Custom / AIRI）。
-规矩写在 `桌宠规则.md`：主力只用 `原子-*`（1~5 秒、能两两自由组合）；举手类动作**不会自己落下**，必须显式贴收回（`原子-竖食指` → `动作-竖手指收回`；`原子-持草` → `动作-狗尾草收回`；`原子-抚胸` → `动作-手放下`）。
+回复里写 `<|ACT {"motion":"Animation/场景-explain.motion3.json"}|>`，airi 会把标记当特殊 token 单独切块执行。
+
+动作库 = **官方 44 条**（Main / TrackingLost / Talk / Outfit / Emotion，含 11 条 `情绪-*`、15 条 `表演-*`）
+\+ **场景复合动作 19 条**（`场景-*`，由 `scripts/gen-scenes.mjs` 生成后进 Custom 组）。
+规矩写在 `桌宠规则.md`，核心三条：
+
+- 日常用 `情绪-*`（2.6~8 秒）和 `场景-*`（3~9 秒，自带表情+重心+手臂），**不要动辄甩十几秒的表演**；
+- 手臂只用 `正常说话-抚胸 / 食指 / 狗尾草` 三条 24 秒循环（抚胸=通用、食指=讲解、狗尾草=摸鱼搞怪），一次对话最多动一次，同一个姿势保持十几秒是正常的；
+- 手臂不再需要「收回」动作：作者原片自带抬手→保持→放手的三段，`scripts/l2d-compose.mjs` 按 1:1 重映射。
 
 ### 3. 语音回复（本仓库新增）
 托盘「语音回复：开/关」→ `POST /dafei/voice`。
@@ -55,9 +62,9 @@ locale/               中英文案
 - 关掉开关 = 一行都不念，但 `POST /dafei/say` 手动调用仍然有效。
 
 ### 4. 唱歌口型（本仓库新增）
-干声 → `l2d-song.mjs`（逐帧口型 + 头摆 + 眨眼 + 眉毛）→ `combo.py` 用**已有动作库**拼编排 → 推 OPFS → CDP 触发 → OBS 录 → ffmpeg 重挂音轨。
+干声 → `l2d-song.mjs`（逐帧口型）→ 字典驱动的语义 plan（`l2d-song-plan.mjs`）→ `l2d-compile.mjs` → `l2d-bake.mjs --mouth` → `l2d-compose.mjs`（叠作者手臂）→ 推 OPFS → CDP 触发 → OBS 录 → ffmpeg 重挂音轨。
 
-要点：只用库里的 `表演-*` / `情绪-*` 拼，不原创；段与段直连（不插空档）、按「收势姿态」挑窗口、`Movement1/2/3`（换手组）逐帧二值化否则手臂出现残影；`ParamMouthOpenY` 永远取音频口型。详见本地手册 `D:\DSH使用策略\手册\10-蓝鲸桌宠.md`。
+要点：身体/表情按字典的 `bestWindows` 挑**最活跃**的窗口（不是从 0 秒起手，否则开头就是死区）；手臂整条搬作者原片（含 `Param11`、`Param27–32` 这些手掌细分，少一条抬手就丢姿态）；`ParamMouthOpenY` 永远取音频口型；整脸换层表情（`key1/3/5/6/10`）不能出现在唱歌里。详见本地手册 `D:\DSH使用策略\手册\11-唱歌口型与成片.md`。
 
 ### 5. 动作语义字典（本仓库新增）
 
@@ -84,13 +91,30 @@ GET /dafei/dict?text=1&limit=20                  # 纯文本速查，可直接�
 | `scripts/l2d-bake.mjs` | IR → `motion3.json`（可 `--mouth` 挂音频口型） |
 | `scripts/l2d-compose.mjs` | 把作者原片的手臂曲线按时间重映射叠到 IR 上（手臂绝不自拧） |
 
+### 6. 场景复合动作（本仓库新增）
+
+每个 Agent 场景配一条**复合动作**：官方表演片段最活跃窗口 + 作者手臂原片三段重映射，全部由脚本生成，不手搓。
+
+```bash
+node scripts/pull-motions.mjs --out .motions-lib          # 先从桌宠 OPFS 拉动作原件
+node scripts/gen-scenes.mjs --lib .motions-lib --out .scenes
+node <dsd>/tmp/push-dir.mjs .scenes                       # 推到桌宠 Custom 组（或用插件 /dafei/act 直接点）
+```
+
+19 个场景：`greet bye explain agree deny confuse idea shy sing think listen cheer tired wow comfort upset` + 摸鱼类 `slack silly tease`（狗尾草）。
+`src/posemap.js` 的 `SCENES` 就是这张表，`POST /dafei/scene {name}` 直接演，`GET /dafei/scene` 看当前，
+模型自己说话时也可以贴 `<|ACT {"motion":"Animation/场景-shy.motion3.json"}|>`。
+
+手臂策略（跟着用户的偏好定）：抚胸不挑场景、默认用它；食指只在讲解/讲话时；狗尾草只给摸鱼装傻搞怪。
+身体幅度靠 `PositionZ / PositionX / LeanInput / AngleZ`（实测排序，胸腔 `ParamBodyAngle*` 在这个模型上无效）。
+
 ## 装法
 
 1. 需要 DSH 桌面版（已登录）**和** RVCover（`http://127.0.0.1:8765`，语音功能才需要）。
 2. 把本目录放到 `C:\Users\pinn\Documents\blue-whale\`（路径可改，改完同步 `cordis.patch.yml`）。
 3. 同步到 DSH 运行副本并重启：
    ```
-   cp -r index.js src locale icon.png cordis.patch.yml 桌宠规则.md \
+   cp -r index.js src locale dict scripts icon.png cordis.patch.yml 桌宠规则.md \
      ~/.dsh/profiles/desktop/node_modules/dsh-bluewhale-prompt/
    ```
    重启 DSH（`D:\DSH\tools\restart-dsh.ps1`）后插件监听 `127.0.0.1:18100`。
