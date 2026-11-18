@@ -82,6 +82,9 @@ const OUT = path.resolve(opt('out', path.join(REPO, '.songs', 'song')))
 const LIB = path.resolve(opt('lib', process.env.L2D_LIB || path.join(REPO, '.motions-lib')))
 const PRESETS = path.resolve(opt('presets', path.join(HERE, 'l2d-song-presets.json')))
 const MOUTH = opt('mouth', '') ? path.resolve(opt('mouth', '')) : ''
+// 2026-11-18i：实测 l2d-song 的包络平滑让口型比人声晚 0.5s（60fps 相关分析 lag=-30 帧，corr 0.773）
+// 这里把口型整体提前 MOUTH_LEAD 秒，视觉上才对得上。0 可关闭。
+const MOUTH_LEAD = Number(opt('mouth-lead', 0.5))
 const FPS = Number(opt('fps', 60))
 const SEG = Number(opt('seg', 7))          // 目标段长（秒），长歌靠它切片
 const FADE = Number(opt('fade', 0.12))     // 每段首尾淡入淡出（秒），段间接续用
@@ -129,7 +132,8 @@ function mouthSlice(mouthCurve, t0, t1, fps) {
   const raw = []
   for (let i = 0; i <= n; i++) {
     const t = Math.min(t1, t0 + i / fps)
-    raw.push(Math.max(0, Math.min(1, sampleAt(pts, t))))
+    // 采样点前移 MOUTH_LEAD：读的是「稍后一点」的音频包络，抵消平滑带来的滞后
+    raw.push(Math.max(0, Math.min(1, sampleAt(pts, t + MOUTH_LEAD))))
   }
   // 2026-11-18h：源音频收尾（器乐段）口型本来全 0，读起来像「人死了」。
   // 连续 >0.25s 的静默里补一条 0.02~0.10 的呼吸小张口，肉眼几乎看不出，但脸是活的。

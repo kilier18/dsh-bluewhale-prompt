@@ -15,6 +15,7 @@
 // 一次完整录制：pause插件 → StartRecord → 同步播歌+唱歌动作 → StopRecord
 import crypto from 'node:crypto'
 import fs from 'node:fs'
+import path from 'node:path'
 
 const SONG = process.env.SONG || 'file:///D:/AI/RVCover/work/final/vocals__m鲸鱼娘__f5b877+instrumental.mp3'
 const OUTDIR = process.env.OUTDIR || 'D:/DSH/workspace/default-workspace/.tmp/sing/rec2'
@@ -106,5 +107,5 @@ await ev(`(() => { try { window.__song && window.__song.pause(); } catch (e) {} 
 const stop = await ocall('StopRecord')
 log('停止录制 →', JSON.stringify(stop))
 log('pause 解除:', await plug('/dafei/pause', { on: false }))
-fs.writeFileSync('.tmp/sing/rec/timing.json', JSON.stringify({ recStartWall, fireWall, fire, outPath: stop.outputPath, durationMs: stop.outputDuration }, null, 1))
+fs.writeFileSync(path.join(OUTDIR, 'timing.json'), JSON.stringify({ recStartWall, fireWall, fire, outPath: stop.outputPath, durationMs: stop.outputDuration }, null, 1))
 ws.close(); obs.close()

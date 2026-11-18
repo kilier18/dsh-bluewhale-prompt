@@ -1,0 +1,340 @@
+{
+ "version": 1,
+ "title": "整首歌",
+ "duration": 36.76,
+ "actions": [
+  {
+   "kind": "sway",
+   "at": 0,
+   "duration": 4.717,
+   "strength": 0.6,
+   "period": 10.7,
+   "bias": 3
+  },
+  {
+   "kind": "look",
+   "dir": "down",
+   "at": 0.325,
+   "duration": 2.928,
+   "strength": 0.55,
+   "eyes": 0.25
+  },
+  {
+   "kind": "brow",
+   "dir": "up",
+   "at": 0.651,
+   "duration": 1.301,
+   "strength": 0.7
+  },
+  {
+   "kind": "tilt",
+   "at": 0.976,
+   "duration": 2.602,
+   "strength": 0.5
+  },
+  {
+   "kind": "blink",
+   "at": 1.627,
+   "duration": 0.325,
+   "count": 1
+  },
+  {
+   "kind": "smile",
+   "at": 1.952,
+   "duration": 2.602,
+   "strength": 0.45
+  },
+  {
+   "kind": "lean",
+   "at": 2.44,
+   "duration": 2.115,
+   "head": -8,
+   "side": 6,
+   "shiftX": 6,
+   "strength": 0.8
+  },
+  {
+   "kind": "squint",
+   "at": 2.44,
+   "duration": 1.139,
+   "strength": 0.6
+  },
+  {
+   "kind": "sway",
+   "at": 6.5062,
+   "duration": 6.506,
+   "strength": 1.05,
+   "period": 12.84,
+   "bias": 9
+  },
+  {
+   "kind": "look",
+   "dir": "left",
+   "at": 6.7502,
+   "duration": 3.416,
+   "strength": 0.6,
+   "eyes": 0.3
+  },
+  {
+   "kind": "brow",
+   "dir": "up",
+   "at": 7.4822,
+   "duration": 1.22,
+   "strength": 0.75
+  },
+  {
+   "kind": "tilt",
+   "at": 7.8072,
+   "duration": 2.928,
+   "strength": 0.55
+  },
+  {
+   "kind": "blink",
+   "at": 8.2952,
+   "duration": 0.325,
+   "count": 1
+  },
+  {
+   "kind": "lean",
+   "at": 9.2712,
+   "duration": 2.765,
+   "head": -12,
+   "side": -10,
+   "shiftX": -9
+  },
+  {
+   "kind": "squint",
+   "at": 9.4342,
+   "duration": 1.057,
+   "strength": 0.55
+  },
+  {
+   "kind": "smile",
+   "at": 11.0602,
+   "duration": 1.952,
+   "strength": 0.4
+  },
+  {
+   "kind": "sway",
+   "at": 13.0124,
+   "duration": 4.229,
+   "strength": 1.25,
+   "period": 8.56,
+   "bias": -7
+  },
+  {
+   "kind": "look",
+   "dir": "up",
+   "at": 13.2074,
+   "duration": 2.342,
+   "strength": 0.6,
+   "eyes": 0.3
+  },
+  {
+   "kind": "brow",
+   "dir": "up",
+   "at": 13.5984,
+   "duration": 0.911,
+   "strength": 0.8
+  },
+  {
+   "kind": "tilt",
+   "at": 13.9234,
+   "duration": 1.952,
+   "strength": 0.6
+  },
+  {
+   "kind": "blink",
+   "at": 14.3134,
+   "duration": 0.26,
+   "count": 1
+  },
+  {
+   "kind": "squint",
+   "at": 14.7044,
+   "duration": 0.781,
+   "strength": 0.6
+  },
+  {
+   "kind": "lean",
+   "at": 14.9644,
+   "duration": 1.822,
+   "head": -10,
+   "side": 8,
+   "shiftX": 8
+  },
+  {
+   "kind": "smile",
+   "at": 15.6154,
+   "duration": 1.692,
+   "strength": 0.45
+  },
+  {
+   "kind": "expression",
+   "name": "脸红",
+   "at": 18.2174,
+   "duration": 7.108,
+   "strength": 0.45
+  },
+  {
+   "kind": "sway",
+   "at": 18.2174,
+   "duration": 7.482,
+   "strength": 1.35,
+   "period": 6.42,
+   "bias": 6
+  },
+  {
+   "kind": "look",
+   "dir": "right",
+   "at": 18.5914,
+   "duration": 3.741,
+   "strength": 0.6,
+   "eyes": 0.35
+  },
+  {
+   "kind": "brow",
+   "dir": "up",
+   "at": 19.1524,
+   "duration": 1.309,
+   "strength": 0.9
+  },
+  {
+   "kind": "blink",
+   "at": 19.5264,
+   "duration": 0.374,
+   "count": 1
+  },
+  {
+   "kind": "tilt",
+   "at": 20.2754,
+   "duration": 2.993,
+   "strength": -0.6
+  },
+  {
+   "kind": "squint",
+   "at": 21.0234,
+   "duration": 1.309,
+   "strength": 0.7
+  },
+  {
+   "kind": "lean",
+   "at": 22.3324,
+   "duration": 2.993,
+   "head": -8,
+   "side": -12,
+   "shiftX": -11
+  },
+  {
+   "kind": "blink",
+   "at": 23.6424,
+   "duration": 0.374,
+   "count": 1
+  },
+  {
+   "kind": "sway",
+   "at": 25.6995,
+   "duration": 6.506,
+   "strength": 1.05,
+   "period": 12.84,
+   "bias": 9
+  },
+  {
+   "kind": "look",
+   "dir": "left",
+   "at": 25.9435,
+   "duration": 3.416,
+   "strength": 0.6,
+   "eyes": 0.3
+  },
+  {
+   "kind": "brow",
+   "dir": "up",
+   "at": 26.6755,
+   "duration": 1.22,
+   "strength": 0.75
+  },
+  {
+   "kind": "tilt",
+   "at": 27.0005,
+   "duration": 2.928,
+   "strength": 0.55
+  },
+  {
+   "kind": "blink",
+   "at": 27.4885,
+   "duration": 0.325,
+   "count": 1
+  },
+  {
+   "kind": "lean",
+   "at": 28.4645,
+   "duration": 2.765,
+   "head": -12,
+   "side": -10,
+   "shiftX": -9
+  },
+  {
+   "kind": "squint",
+   "at": 28.6275,
+   "duration": 1.057,
+   "strength": 0.55
+  },
+  {
+   "kind": "smile",
+   "at": 30.2535,
+   "duration": 1.952,
+   "strength": 0.4
+  },
+  {
+   "kind": "sway",
+   "at": 32.2057,
+   "duration": 3.188,
+   "strength": 0.7,
+   "period": 11.77,
+   "bias": 4
+  },
+  {
+   "kind": "smile",
+   "at": 32.4337,
+   "duration": 2.049,
+   "strength": 0.55
+  },
+  {
+   "kind": "look",
+   "dir": "down",
+   "at": 32.5477,
+   "duration": 1.822,
+   "strength": 0.5,
+   "eyes": 0.25
+  },
+  {
+   "kind": "brow",
+   "dir": "up",
+   "at": 33.1167,
+   "duration": 0.911,
+   "strength": 0.7
+  },
+  {
+   "kind": "lean",
+   "at": 33.4577,
+   "duration": 1.594,
+   "head": -6,
+   "side": 8,
+   "shiftX": 6,
+   "strength": 0.8
+  },
+  {
+   "kind": "squint",
+   "at": 33.8567,
+   "duration": 1.025,
+   "strength": 0.65
+  },
+  {
+   "kind": "tilt",
+   "at": 34.1417,
+   "duration": 1.139,
+   "strength": -0.4
+  }
+ ]
+}
