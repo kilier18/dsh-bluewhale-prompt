@@ -20,8 +20,12 @@ import path from 'node:path'
 const SONG = process.env.SONG || 'file:///D:/AI/RVCover/work/final/vocals__m鲸鱼娘__f5b877+instrumental.mp3'
 const OUTDIR = process.env.OUTDIR || 'D:/DSH/workspace/default-workspace/.tmp/sing/rec2'
 const MOTION_INDEX = Number(process.env.MOTION_INDEX || 59)
+// 场景名 / 默认 MV 源名都在 obs-defaults.json 里
+const OBS_DEFAULTS = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'obs-defaults.json'), 'utf8')) } catch { return {} }
+})()
 // 直播 UI 里那条「歌词 MV」媒体源名字；给了就保证每次录制都从 0 开始
-const MV = process.env.MV_SOURCE || ''
+const MV = process.env.MV_SOURCE || (OBS_DEFAULTS.mvSource || '')
 const TAIL = 2.0
 fs.mkdirSync(OUTDIR, { recursive: true })
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -47,17 +51,23 @@ obs.addEventListener('message', e => {
 await new Promise(r => { const iv = setInterval(() => { if (obs._ready) { clearInterval(iv); r() } }, 50) })
 log('OBS 已连')
 
-// ---- 插件 pause ----
+// ---- 插件 pause（插件没起来也不该挡住录制）----
 const plug = async (path, body) => {
-  const r = await fetch('http://127.0.0.1:18100' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-  return r.text()
+  try {
+    const r = await fetch('http://127.0.0.1:18100' + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    return r.text()
+  } catch (e) { return '（插件没响应：' + e.message.slice(0, 60) + '）' }
 }
 log('pause:', await plug('/dafei/pause', { on: true }))
 
 // ---- 录前准备 ----
+// 场景名从 obs-defaults.json 读（用户现在的直播 UI 叫「肥鱼直播ui」，别再写死旧场景）
 await ocall('SetInputMute', { inputName: '音频输入采集', inputMuted: true })
 await ocall('SetRecordDirectory', { recordDirectory: OUTDIR })
-await ocall('SetCurrentProgramScene', { sceneName: '场景' })
+if (OBS_DEFAULTS.sceneName) {
+  try { await ocall('SetCurrentProgramScene', { sceneName: OBS_DEFAULTS.sceneName }); log('场景:', OBS_DEFAULTS.sceneName) }
+  catch (e) { log('切场景失败（用当前场景）:', e.message.slice(0, 80)) }
+}
 log('录制目录:', OUTDIR)
 
 // ---- CDP ----
