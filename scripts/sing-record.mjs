@@ -85,15 +85,33 @@ const ev = async (expr, awaitP = true) => {
 }
 
 // ---- 开录 ----
+// 要重播哪些媒体源：mvSource 写了具体名字就只认它；写 auto 或留空 → 当前场景里
+// 所有启用的媒体源全部重播（避免猜测哪条是 MV；不想被重播的写进 skipSources）
+let MV_TARGETS = []
+if (MV && MV !== 'auto') MV_TARGETS = [MV]
+else {
+  try {
+    const skip = new Set(OBS_DEFAULTS.skipSources || [])
+    const scene = (await ocall('GetSceneList', {})).currentProgramSceneName
+    const items = (await ocall('GetSceneItemList', { sceneName: scene })).sceneItems
+    for (const it of items) {
+      if (it.inputKind !== 'ffmpeg_source' || it.sceneItemEnabled === false) continue
+      if (skip.has(it.sourceName)) continue
+      MV_TARGETS.push(it.sourceName)
+    }
+    log('自动识别的 MV 源:', MV_TARGETS.length ? MV_TARGETS.map(n => n.slice(0, 18)).join(' | ') : '（没有）')
+  } catch (e) { log('识别媒体源失败:', e.message.slice(0, 100)) }
+}
+
 // 预卷：先把 MV 停住（预卷这 1.5s 画面停在首帧），等触发那一刻再 RESTART 从头播
 const MV_RESTART_ACTION = 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART'
 const MV_STOP_ACTION = 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'
-if (MV) {
+for (const name of MV_TARGETS) {
   try {
     // 别让 OBS 自己的「激活即重播」掺一脚，改由我们在触发点精确控制
-    await ocall('SetInputSettings', { inputName: MV, inputSettings: { restart_on_activate: false, close_when_inactive: false }, overlay: true })
-    await ocall('TriggerMediaInputAction', { inputName: MV, mediaAction: MV_STOP_ACTION })
-    log('MV 已停在首帧:', MV)
+    await ocall('SetInputSettings', { inputName: name, inputSettings: { restart_on_activate: false, close_when_inactive: false }, overlay: true })
+    await ocall('TriggerMediaInputAction', { inputName: name, mediaAction: MV_STOP_ACTION })
+    log('MV 已停在首帧:', name.slice(0, 24))
   } catch (e) { log('MV 预处理失败（不影响录制）:', e.message.slice(0, 120)) }
 }
 
@@ -105,11 +123,11 @@ await sleep(1500)
 // ---- 与起歌同一刻从头播 MV ----
 // 注意：不要用 STOP→光标归零→PLAY，实测 OBS 会卡在 33ms 不动；RESTART 才可靠重启解码
 let mvWall = 0
-if (MV) {
-  try { await ocall('TriggerMediaInputAction', { inputName: MV, mediaAction: MV_RESTART_ACTION }); mvWall = Date.now() }
+for (const name of MV_TARGETS) {
+  try { await ocall('TriggerMediaInputAction', { inputName: name, mediaAction: MV_RESTART_ACTION }); mvWall = Date.now() }
   catch (e) { log('MV 起播失败:', e.message.slice(0, 120)) }
 }
-if (MV) log(`MV 起播于录制时间轴 ${((mvWall - recStartWall) / 1000).toFixed(3)}s`)
+if (MV_TARGETS.length) log(`MV 起播于录制时间轴 ${((mvWall - recStartWall) / 1000).toFixed(3)}s`)
 
 // ---- 同一 tick 起歌 + 起动作 ----
 const fire = await ev(`(async () => {

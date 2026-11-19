@@ -1,5 +1,6 @@
 {
-  "_说明": "本地 OBS 源名约定：make-mv/sing-record 会用 mvSource 这条媒体源做「每次录制从头播」。换素材后只改这里（或命令行 --mv 覆盖）。",
-  "mvSource": "ゆけむり魂温泉II _ 魂音泉 [Music Video] P1 ゆけむり魂温泉II - 魂音泉 [Music Video]_Full-HD_60fps_29815737304.mp4",
-  "sceneName": "肥鱼直播ui"
+  "_说明": "mvSource=auto 时，录制会重播当前场景里所有启用的媒体源（不猜哪条是 MV，换歌换 MV 都不必改配置）。某条不想被重播就写进 skipSources。sceneName 是录制前切到的场景，留空则用当前场景。",
+  "mvSource": "auto",
+  "sceneName": "肥鱼直播ui",
+  "skipSources": []
 }
