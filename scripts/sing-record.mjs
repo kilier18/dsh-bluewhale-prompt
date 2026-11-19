@@ -20,6 +20,8 @@ import path from 'node:path'
 const SONG = process.env.SONG || 'file:///D:/AI/RVCover/work/final/vocals__m鲸鱼娘__f5b877+instrumental.mp3'
 const OUTDIR = process.env.OUTDIR || 'D:/DSH/workspace/default-workspace/.tmp/sing/rec2'
 const MOTION_INDEX = Number(process.env.MOTION_INDEX || 59)
+// 直播 UI 里那条「歌词 MV」媒体源名字；给了就保证每次录制都从 0 开始
+const MV = process.env.MV_SOURCE || ''
 const TAIL = 2.0
 fs.mkdirSync(OUTDIR, { recursive: true })
 const sleep = ms => new Promise(r => setTimeout(r, ms))
@@ -73,10 +75,31 @@ const ev = async (expr, awaitP = true) => {
 }
 
 // ---- 开录 ----
+// 预卷：先把 MV 停住（预卷这 1.5s 画面停在首帧），等触发那一刻再 RESTART 从头播
+const MV_RESTART_ACTION = 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART'
+const MV_STOP_ACTION = 'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'
+if (MV) {
+  try {
+    // 别让 OBS 自己的「激活即重播」掺一脚，改由我们在触发点精确控制
+    await ocall('SetInputSettings', { inputName: MV, inputSettings: { restart_on_activate: false, close_when_inactive: false }, overlay: true })
+    await ocall('TriggerMediaInputAction', { inputName: MV, mediaAction: MV_STOP_ACTION })
+    log('MV 已停在首帧:', MV)
+  } catch (e) { log('MV 预处理失败（不影响录制）:', e.message.slice(0, 120)) }
+}
+
 await ocall('StartRecord')
 const recStartWall = Date.now()
 log('开始录制')
 await sleep(1500)
+
+// ---- 与起歌同一刻从头播 MV ----
+// 注意：不要用 STOP→光标归零→PLAY，实测 OBS 会卡在 33ms 不动；RESTART 才可靠重启解码
+let mvWall = 0
+if (MV) {
+  try { await ocall('TriggerMediaInputAction', { inputName: MV, mediaAction: MV_RESTART_ACTION }); mvWall = Date.now() }
+  catch (e) { log('MV 起播失败:', e.message.slice(0, 120)) }
+}
+if (MV) log(`MV 起播于录制时间轴 ${((mvWall - recStartWall) / 1000).toFixed(3)}s`)
 
 // ---- 同一 tick 起歌 + 起动作 ----
 const fire = await ev(`(async () => {
@@ -106,6 +129,8 @@ log('尾部状态:', tail)
 await ev(`(() => { try { window.__song && window.__song.pause(); } catch (e) {} document.querySelectorAll('audio').forEach(x => { try { x.pause(); } catch (e) {} }); return 'stopped' })()`)
 const stop = await ocall('StopRecord')
 log('停止录制 →', JSON.stringify(stop))
+// 收工把 MV 停住，下一轮从干净状态开始（不停会一直播到底，下次预卷画面就不可控了）
+if (MV) { try { await ocall('TriggerMediaInputAction', { inputName: MV, mediaAction: MV_STOP_ACTION }) } catch (e) {} }
 log('pause 解除:', await plug('/dafei/pause', { on: false }))
 fs.writeFileSync(path.join(OUTDIR, 'timing.json'), JSON.stringify({ recStartWall, fireWall, fire, outPath: stop.outputPath, durationMs: stop.outputDuration }, null, 1))
 ws.close(); obs.close()

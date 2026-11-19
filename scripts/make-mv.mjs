@@ -42,6 +42,11 @@ const LEAD = get('--lead', '0.5')
 const CANVAS = get('--canvas', '')
 const FROM = get('--from', '')
 const SKIP_SUB = has('--skip-sub')
+// 直播 UI 里的歌词 MV：默认读 scripts/obs-defaults.json 的 mvSource，--mv 可覆盖
+const OBS_DEFAULTS = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(HERE, 'obs-defaults.json'), 'utf8')) } catch { return {} }
+})()
+const MV_SOURCE = get('--mv', OBS_DEFAULTS.mvSource || '')
 const SEED = get('--seed', String(Math.floor(Math.random() * 1e6)))
 
 // 出片档位：high=CPU x264 最高质量 / balanced=GPU 均衡（默认）/ fast=GPU 最快
@@ -119,7 +124,7 @@ if (FROM === 'record' || !FROM) {
     console.error('桌宠没响应：先把桌宠窗口显示出来（托盘「显示」），隐藏状态下 OBS 录不到画面'); process.exit(1)
   }
   run(process.execPath, [path.join(HERE, 'sing-record.mjs')], {
-    env: { ...process.env, MOTION_INDEX: String(idx), DUR: dur.toFixed(2), SONG: `file:///${SONG.replace(/\\/g, '/')}`, OUTDIR: REC },
+    env: { ...process.env, MOTION_INDEX: String(idx), DUR: dur.toFixed(2), SONG: `file:///${SONG.replace(/\\/g, '/')}`, OUTDIR: REC, MV_SOURCE },
   })
 }
 
