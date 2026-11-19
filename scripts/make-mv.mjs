@@ -128,8 +128,8 @@ if (FROM === 'record' || !FROM) {
   })
 }
 
-// 5) 偏移 + mux
-if (FROM === 'sync' || !FROM) {
+// 5) 偏移 + mux（--from record 之后也要走到这里，否则录完不出片）
+if (FROM === 'sync' || FROM === 'record' || !FROM) {
   const rec = fs.readdirSync(REC).filter((f) => f.endsWith('.mp4')).map((f) => ({ f, t: fs.statSync(path.join(REC, f)).mtimeMs })).sort((a, b) => b.t - a.t)[0]
   if (!rec) { console.error('录不到文件'); process.exit(1) }
   const RECPATH = path.join(REC, rec.f)

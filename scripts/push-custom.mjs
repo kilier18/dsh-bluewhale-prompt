@@ -51,15 +51,23 @@ for (const f of files) {
   const code = `(async () => {
     const bin = atob(window.__chunks.join('')); window.__chunks = [];
     const u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const base = ${JSON.stringify(f.replace(/\.motion3\.json$/i, ''))}.toLowerCase();
     const root = await navigator.storage.getDirectory();
     const model = await root.getDirectoryHandle('preset-live2d-1');
     const anim = await model.getDirectoryHandle('Animation', { create: true });
+    // 清掉同名历史残留（例如老版本留下的「唱歌-整首」没有 .motion3.json 后缀那种），
+    // 不然 model3.json 里会同时挂两条，Custom 索引白白多一格
+    const killed = [];
+    for await (const [name] of anim.entries()) {
+      const norm = name.replace(/\\.motion3\\.json$/i, '').toLowerCase();
+      if (norm === base && name !== ${JSON.stringify(f)}) { try { await anim.removeEntry(name); killed.push(name) } catch (e) {} }
+    }
     const fh = await anim.getFileHandle(${JSON.stringify(f)}, { create: true });
     const w = await fh.createWritable(); await w.write(new Blob([u8])); await w.close();
-    return (await (await fh.getFile()).size);
+    return JSON.stringify({ size: (await (await fh.getFile()).size), killed });
   })()`
-  const got = await ev(code)
-  console.log(`${f}  写入 ${got}B  ${got === buf.length ? 'OK' : 'SIZE-MISMATCH!'}`)
+  const r = JSON.parse(await ev(code))
+  console.log(`${f}  写入 ${r.size}B  ${r.size === buf.length ? 'OK' : 'SIZE-MISMATCH!'}${r.killed.length ? '  清掉残留: ' + r.killed.join(',') : ''}`)
 }
 
 const reg = `(async () => {
@@ -68,8 +76,11 @@ const reg = `(async () => {
   const fh = await model.getFileHandle('大肥鱼.model3.json');
   const j = JSON.parse(await (await fh.getFile()).text());
   const want = ${JSON.stringify(files.map((f) => `Animation/${f}`))};
+  const base = (p) => String(p).split('/').pop().replace(/\\.motion3\\.json$/i, '').toLowerCase();
+  const wantBase = want.map(base);
   const g = j.FileReferences.Motions;
-  g.Custom = (g.Custom || []).filter((m) => !want.includes(m.File));
+  // 按「去掉后缀的基础名」去重：老条目可能写成 Animation/xxx（没 .json）
+  g.Custom = (g.Custom || []).filter((m) => !wantBase.includes(base(m.File)));
   for (const w of want) g.Custom.push({ File: w });
   const wr = await fh.createWritable(); await wr.write(new Blob([JSON.stringify(j)], { type: 'application/json' })); await wr.close();
   return JSON.stringify(Object.fromEntries(Object.entries(j.FileReferences.Motions).map(([k, v]) => [k, v.length])));

@@ -62,7 +62,11 @@ log('pause:', await plug('/dafei/pause', { on: true }))
 
 // ---- 录前准备 ----
 // 场景名从 obs-defaults.json 读（用户现在的直播 UI 叫「肥鱼直播ui」，别再写死旧场景）
-await ocall('SetInputMute', { inputName: '音频输入采集', inputMuted: true })
+// 麦克风源名各套 UI 不同，找不到就算了（录唱歌本来就不需要 mic）
+for (const mic of ['音频输入采集', '麦克风', '麦克风/辅助音频']) {
+  try { await ocall('SetInputMute', { inputName: mic, inputMuted: true }); log('已静音:', mic); break }
+  catch (e) { /* 不存在就跳下一个 */ }
+}
 await ocall('SetRecordDirectory', { recordDirectory: OUTDIR })
 if (OBS_DEFAULTS.sceneName) {
   try { await ocall('SetCurrentProgramScene', { sceneName: OBS_DEFAULTS.sceneName }); log('场景:', OBS_DEFAULTS.sceneName) }
