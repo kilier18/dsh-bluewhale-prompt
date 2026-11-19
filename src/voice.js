@@ -5,6 +5,7 @@
 //   写 `[说]…[/说]` 也认。都没写就自动从正文第一段里截一句，保证不把长回复整段念出来
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spawn } from 'node:child_process'
 import { loadState, log, ROOT } from './state.js'
 import { cleanForSpeech } from './clean-text.js'
