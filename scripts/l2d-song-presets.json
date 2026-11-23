@@ -1,0 +1,390 @@
+{
+  "//": "唱歌编排预设库：每段只写语义动作，at/duration 都是「段内相对秒」。weight 决定这首歌里各段占比。",
+  "order": [
+    "intro",
+    "verse",
+    "prechorus",
+    "chorus",
+    "bridge",
+    "chorus",
+    "outro"
+  ],
+  "presets": {
+    "intro": {
+      "weight": 1.0,
+      "actions": [
+        {
+          "kind": "sway",
+          "at": 0.0,
+          "duration": 5.8,
+          "strength": 0.6,
+          "period": 10,
+          "bias": 3
+        },
+        {
+          "kind": "look",
+          "dir": "down",
+          "at": 0.4,
+          "duration": 3.6,
+          "strength": 0.55,
+          "eyes": 0.25
+        },
+        {
+          "kind": "tilt",
+          "at": 1.2,
+          "duration": 3.2,
+          "strength": 0.5
+        },
+        {
+          "kind": "smile",
+          "at": 2.4,
+          "duration": 3.2,
+          "strength": 0.45
+        },
+        {
+          "kind": "blink",
+          "at": 2.0,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "lean",
+          "at": 3.0,
+          "duration": 2.6,
+          "head": -8,
+          "side": 6,
+          "shiftX": 6,
+          "strength": 0.8
+        },
+        {
+          "kind": "brow",
+          "dir": "up",
+          "at": 0.8,
+          "duration": 1.6,
+          "strength": 0.7
+        },
+        {
+          "kind": "squint",
+          "at": 3.0,
+          "duration": 1.4,
+          "strength": 0.6
+        }
+      ]
+    },
+    "verse": {
+      "weight": 1.0,
+      "actions": [
+        {
+          "kind": "sway",
+          "at": 0.0,
+          "duration": 8.0,
+          "strength": 1.05,
+          "period": 12,
+          "bias": 9
+        },
+        {
+          "kind": "look",
+          "dir": "left",
+          "at": 0.3,
+          "duration": 4.2,
+          "strength": 0.6,
+          "eyes": 0.3
+        },
+        {
+          "kind": "tilt",
+          "at": 1.6,
+          "duration": 3.6,
+          "strength": 0.55
+        },
+        {
+          "kind": "lean",
+          "at": 3.4,
+          "duration": 3.4,
+          "head": -12,
+          "side": -10,
+          "shiftX": -9
+        },
+        {
+          "kind": "blink",
+          "at": 2.2,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "smile",
+          "at": 5.6,
+          "duration": 2.4,
+          "strength": 0.4
+        },
+        {
+          "kind": "brow",
+          "dir": "up",
+          "at": 1.2,
+          "duration": 1.5,
+          "strength": 0.75
+        },
+        {
+          "kind": "squint",
+          "at": 3.6,
+          "duration": 1.3,
+          "strength": 0.55
+        }
+      ]
+    },
+    "prechorus": {
+      "weight": 0.8,
+      "actions": [
+        {
+          "kind": "sway",
+          "at": 0.0,
+          "duration": 6.5,
+          "strength": 1.25,
+          "period": 8,
+          "bias": -7
+        },
+        {
+          "kind": "look",
+          "dir": "up",
+          "at": 0.3,
+          "duration": 3.6,
+          "strength": 0.6,
+          "eyes": 0.3
+        },
+        {
+          "kind": "tilt",
+          "at": 1.4,
+          "duration": 3.0,
+          "strength": 0.6
+        },
+        {
+          "kind": "lean",
+          "at": 3.0,
+          "duration": 2.8,
+          "head": -10,
+          "side": 8,
+          "shiftX": 8
+        },
+        {
+          "kind": "blink",
+          "at": 2.0,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "smile",
+          "at": 4.0,
+          "duration": 2.6,
+          "strength": 0.45
+        },
+        {
+          "kind": "brow",
+          "dir": "up",
+          "at": 0.9,
+          "duration": 1.4,
+          "strength": 0.8
+        },
+        {
+          "kind": "squint",
+          "at": 2.6,
+          "duration": 1.2,
+          "strength": 0.6
+        }
+      ]
+    },
+    "chorus": {
+      "weight": 1.15,
+      "actions": [
+        {
+          "kind": "expression",
+          "name": "脸红",
+          "at": 0.0,
+          "duration": 7.6,
+          "strength": 0.45
+        },
+        {
+          "kind": "sway",
+          "at": 0.0,
+          "duration": 8.0,
+          "strength": 1.35,
+          "period": 6,
+          "bias": 6
+        },
+        {
+          "kind": "look",
+          "dir": "right",
+          "at": 0.4,
+          "duration": 4.0,
+          "strength": 0.6,
+          "eyes": 0.35
+        },
+        {
+          "kind": "tilt",
+          "at": 2.2,
+          "duration": 3.2,
+          "strength": -0.6
+        },
+        {
+          "kind": "lean",
+          "at": 4.4,
+          "duration": 3.2,
+          "head": -8,
+          "side": -12,
+          "shiftX": -11
+        },
+        {
+          "kind": "blink",
+          "at": 1.4,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "blink",
+          "at": 5.8,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "brow",
+          "dir": "up",
+          "at": 1.0,
+          "duration": 1.4,
+          "strength": 0.9
+        },
+        {
+          "kind": "squint",
+          "at": 3.0,
+          "duration": 1.4,
+          "strength": 0.7
+        }
+      ]
+    },
+    "bridge": {
+      "weight": 0.75,
+      "actions": [
+        {
+          "kind": "sway",
+          "at": 0.0,
+          "duration": 6.5,
+          "strength": 0.95,
+          "period": 13,
+          "bias": -10
+        },
+        {
+          "kind": "look",
+          "dir": "right",
+          "at": 0.3,
+          "duration": 4.4,
+          "strength": 0.6,
+          "eyes": 0.3
+        },
+        {
+          "kind": "expression",
+          "name": "爱心眼",
+          "at": 1.8,
+          "duration": 3.2,
+          "strength": 0.35
+        },
+        {
+          "kind": "lean",
+          "at": 1.4,
+          "duration": 3.4,
+          "head": -14,
+          "side": -10,
+          "shiftX": -8
+        },
+        {
+          "kind": "tilt",
+          "at": 3.6,
+          "duration": 2.8,
+          "strength": 0.5
+        },
+        {
+          "kind": "blink",
+          "at": 2.4,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "smile",
+          "at": 4.6,
+          "duration": 2.0,
+          "strength": 0.5
+        },
+        {
+          "kind": "brow",
+          "dir": "up",
+          "at": 1.6,
+          "duration": 1.6,
+          "strength": 0.8
+        },
+        {
+          "kind": "squint",
+          "at": 2.8,
+          "duration": 1.4,
+          "strength": 0.65
+        }
+      ]
+    },
+    "outro": {
+      "weight": 0.7,
+      "actions": [
+        {
+          "kind": "sway",
+          "at": 0.0,
+          "duration": 5.6,
+          "strength": 0.7,
+          "period": 11,
+          "bias": 4
+        },
+        {
+          "kind": "smile",
+          "at": 0.4,
+          "duration": 3.6,
+          "strength": 0.55
+        },
+        {
+          "kind": "look",
+          "dir": "down",
+          "at": 0.6,
+          "duration": 3.2,
+          "strength": 0.5,
+          "eyes": 0.25
+        },
+        {
+          "kind": "lean",
+          "at": 2.2,
+          "duration": 2.8,
+          "head": -6,
+          "side": 8,
+          "shiftX": 6,
+          "strength": 0.8
+        },
+        {
+          "kind": "tilt",
+          "at": 3.4,
+          "duration": 2.0,
+          "strength": -0.4
+        },
+        {
+          "kind": "blink",
+          "at": 2.0,
+          "duration": 0.4,
+          "count": 1
+        },
+        {
+          "kind": "brow",
+          "dir": "up",
+          "at": 1.6,
+          "duration": 1.6,
+          "strength": 0.7
+        },
+        {
+          "kind": "squint",
+          "at": 2.9,
+          "duration": 1.8,
+          "strength": 0.65
+        }
+      ]
+    }
+  }
+}

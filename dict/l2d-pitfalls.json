@@ -1,0 +1,55 @@
+{
+  "//": "参数的坑：每条都是实测踩出来的，写动作前必须读。generatedBy: 人工维护（不要用脚本覆盖）",
+  "version": 2,
+  "updated": "2026-11-18",
+  "params": {
+    "LeanInput": {
+      "name": "重心/身体前后倾",
+      "range": "-30 ~ 30（本模型 core 上限）",
+      "verdict": "禁用",
+      "symptom": "整首歌持续往前探（探头），一次能连着探十几秒；用户反馈『全都变成探头了，根本没有停过』",
+      "why": "正负方向在本模型上无法定标（alpha 遮罩被背景层撑满到 1019，core 钩子在 reload 后失效）。观测上负值读作『往镜头方向压』，一旦常驻就变成持续前探。",
+      "evidence": "唱歌-自有编舞-06 → 08：只要 sway/lean 里带 LeanInput，前探事件 9 次；09 把 LeanInput 整条移除后前探事件 0。",
+      "instead": "身体前后感用 AngleX（左右转头）/ AngleZ（侧倾）替代；真要纵深只用 PositionZ 且限制在 -5 ~ +1.5。"
+    },
+    "PositionZ": {
+      "name": "纵深（缩放/推拉镜头感）",
+      "range": "-30 ~ 30",
+      "verdict": "慎用，≤ ±5",
+      "symptom": "负值同样读作前探；正值把人物推远、和背景透视打架",
+      "why": "它改的是画布坐标，不是骨骼；幅度一大就会和 OBS 背景的透视错位",
+      "instead": "kTilt 里只留 -3·s，其余一律写 0"
+    },
+    "ParamBodyAngleX": { "name": "躯干左右扭", "verdict": "无效", "symptom": "写了完全看不出，连帧差都是 0", "why": "本模型未绑到可见变形链，或被物理每帧覆盖", "evidence": "探针-身体.motion3.json：帧差 1.8→0.05→0.00，bbox 移动 0.6px" },
+    "ParamBodyAngleY": { "name": "躯干前后弯", "verdict": "无效", "note": "同上，ChestX1/Y1、Param138 同族全部无效" },
+    "ParamBodyAngleZ": { "name": "躯干侧弯", "verdict": "无效", "note": "同上" },
+    "Movement1": { "name": "换手组标记：狗尾草", "verdict": "只能二值", "symptom": "两套手臂绑骨同时半开 = 残影/多一条手臂", "why": "Movement1/2/3 是『当前用哪套手臂』的开关，不是连续量；加权平均会让两套装备同时可见", "instead": "要么 0 要么 1；跨段保持时用常量 1，不要斜坡叠加" },
+    "Movement2": { "name": "换手组标记：抚胸", "verdict": "只能二值", "note": "同上；唱歌通用姿势就用它（抚胸不挑场景）" },
+    "Movement3": { "name": "换手组标记：竖食指", "verdict": "只能二值", "note": "同上；讲话/讲解用" },
+    "Param11": { "name": "手掌细分（连同 27~32）", "verdict": "必须一起搬", "symptom": "抬手落手时手扫过身体会丢姿态 → 残影", "why": "手臂姿态由 20 多个参数共同决定，只搬 Movement+Param36/39-43/55-62 会漏掉掌指细分", "evidence": "l2d-compose 早期用 20 个参数的 ARMS 白名单，v8 起改成『除语义层参数外整条搬』才对上" },
+    "Param56": { "name": "左臂/抚胸主参数", "verdict": "作者值 0.446", "note": "不要自己编数值，量原片保持段" },
+    "Param57": { "name": "右臂/竖食指主参数", "verdict": "作者值 0.266；竖食指 1.0", "note": "手指类与道具类不要相邻（手指刚放下就掏草 = 凭空出草）" },
+    "Param60": { "name": "小臂偏转", "verdict": "作者区间 0.636~0.878", "symptom": "自己填 0.60 → 手甩到背后", "instead": "只用量出来的 arm-poses 常量" },
+    "Param61": { "name": "手腕", "verdict": "作者区间 0 ~ 0.196", "symptom": "自己填 0.30 → 手腕扭成麻花" },
+    "ShoulderX": { "name": "肩部", "verdict": "只做微调 ≤ 15", "note": "视觉幅度最小，压不住手臂异常" },
+    "AngleX": { "name": "头左右转向（yaw）,不是低头", "verdict": "主力通道", "range": "-28 ~ 28", "note": "官方表演用它做左右转头；写作时别当俯仰用" },
+    "AngleY": { "name": "头俯仰（点头）", "verdict": "可用，少用", "range": "-18 ~ 18", "note": "唱歌里频繁点头会显得机械，用户明确要求删掉 nod" },
+    "AngleZ": { "name": "头/身侧倾（roll）", "verdict": "主力通道", "range": "-27 ~ 27", "note": "侧身倾斜观感最好，用户点名要这个" },
+    "key1": { "name": "换脸：黑脸", "verdict": "唱歌禁用", "symptom": "整脸图层被替换 → 嘴不动", "why": "key* 是换脸部件开关（key3/5/6=＞＜/屑屑眼/圈圈眼，key4 爱心眼，key7 脸红，key2 流泪…）", "instead": "只用叠加型：脸红(key7)、爱心眼(key4)" },
+    "key3": { "name": "换脸：＞＜/屑屑眼", "verdict": "唱歌禁用", "note": "用户原话：『屑屑眼这个表情会覆盖面部动作』" },
+    "key5": { "name": "换脸：屑屑眼", "verdict": "唱歌禁用", "note": "同 key3" },
+    "key6": { "name": "换脸：圈圈眼", "verdict": "唱歌禁用", "note": "同 key3" },
+    "key10": { "name": "换脸：钢盆", "verdict": "唱歌禁用", "note": "整脸替换" },
+    "ParamEyeBallX": { "name": "眼球横向", "verdict": "≤ ±0.2", "symptom": "『眼神一直左右晃』很跳戏", "instead": "look 的 eyes 参数默认 0.45，唱歌建议 0.25~0.35；不动眼球就 eyes:0" }
+  },
+  "fileLevel": {
+    "Meta.CurveCount": { "symptom": "整条曲线被 Cubism 忽略（例如口型完全不动）", "why": "Cubism 按 Meta.CurveCount 决定读几条曲线；往 Curves 里 push 新曲线后必须重算 CurveCount/TotalSegmentCount/TotalPointCount", "evidence": "gen-song 先 mergeArm 再 push 口型，CurveCount 少 1 → 口型整条被跳过" },
+    "FadeInTime/FadeOutTime": { "verdict": "烘焙件写 0", "why": "曲线本身已是 smoothstep；再加播放器淡入 = 三重软化，观感『起手慢』" },
+    "Segments": { "note": "布局是 [t0,v0,type,...]；type=0 跟 3 个数，type=1 跟 7 个数（贝塞尔）。段数不能按 (len-2)/3 算" },
+    "Target": { "note": "Curves[].Target 永远字面量 'Parameter'，真名在 Id" }
+  },
+  "channels": {
+    "ADDITIVE": ["AngleX", "AngleY", "AngleZ", "PositionX", "PositionY", "PositionZ", "LeanInput", "ShoulderX"],
+    "//": "这些参数允许多条轨道求和叠加（编译器 mix 轨），其余参数同时间只能一条，重叠 >0.015s 直接报错"
+  }
+}

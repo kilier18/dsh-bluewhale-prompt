@@ -1,0 +1,228 @@
+{
+ "version": 1,
+ "generatedBy": "scripts/l2d-dict.py",
+ "source": "OPFS preset-live2d-1/Animation (official 44)",
+ "tiers": {
+  "steady": "稳态：PositionX/AngleZ ≤10，适合讲话、副歌前的铺底",
+  "cozy": "黏人档：PositionX ≤19 或 LeanInput ≤−20，适合主歌、撒娇",
+  "bomb": "炸场档：PositionX ≥20，只适合副歌爆点，别连续用"
+ },
+ "mapping": [
+  {
+   "intent": "打招呼",
+   "tier": "cozy",
+   "body": "表演-04-俏皮",
+   "window": [
+    0.5,
+    6.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "脸红",
+   "note": "起手轻快，1.5s 内抬手"
+  },
+  {
+   "intent": "自我介绍",
+   "tier": "steady",
+   "body": "表演-09-沉稳",
+   "window": [
+    0.5,
+    12.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "—",
+   "note": "慢节奏长保持"
+  },
+  {
+   "intent": "讲解/说明",
+   "tier": "steady",
+   "body": "表演-10-决意",
+   "window": [
+    0.5,
+    14.0
+   ],
+   "arm": "正常说话-食指",
+   "face": "—",
+   "note": "配点头，每 3–4s 一拍"
+  },
+  {
+   "intent": "思考",
+   "tier": "steady",
+   "body": "表演-01-疑惑",
+   "window": [
+    0.5,
+    10.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "—",
+   "note": "AngleX −15 侧看 + 歪头"
+  },
+  {
+   "intent": "疑惑",
+   "tier": "steady",
+   "body": "表演-01-疑惑",
+   "window": [
+    3.0,
+    12.0
+   ],
+   "arm": "正常说话-食指",
+   "face": "—",
+   "note": "惊讶表情别叠 key*"
+  },
+  {
+   "intent": "惊讶",
+   "tier": "cozy",
+   "body": "情绪-惊讶-1",
+   "window": [
+    0.0,
+    3.6
+   ],
+   "arm": "—",
+   "face": "—",
+   "note": "短脉冲，≤4s"
+  },
+  {
+   "intent": "开心",
+   "tier": "cozy",
+   "body": "情绪-开心-1",
+   "window": [
+    0.0,
+    3.6
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "脸红",
+   "note": "脉冲式，别连续 8s"
+  },
+  {
+   "intent": "撒娇",
+   "tier": "cozy",
+   "body": "表演-14-撒娇",
+   "window": [
+    0.5,
+    20.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "脸红",
+   "note": "LeanInput 到 −22，手只抬一次"
+  },
+  {
+   "intent": "撒娇加强",
+   "tier": "bomb",
+   "body": "表演-15-撒娇进阶",
+   "window": [
+    0.5,
+    20.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "脸红",
+   "note": "LeanInput −26，只用于爆点"
+  },
+  {
+   "intent": "害羞",
+   "tier": "steady",
+   "body": "情绪-害羞-1",
+   "window": [
+    0.0,
+    8.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "脸红",
+   "note": "AngleX 实测 ±27，幅度大但短"
+  },
+  {
+   "intent": "生气",
+   "tier": "steady",
+   "body": "情绪-生气-2",
+   "window": [
+    0.0,
+    8.0
+   ],
+   "arm": "正常说话-食指",
+   "face": "—",
+   "note": ""
+  },
+  {
+   "intent": "难过",
+   "tier": "steady",
+   "body": "情绪-难过-1",
+   "window": [
+    0.0,
+    10.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "—",
+   "note": "几乎不动的低头"
+  },
+  {
+   "intent": "鼓励/打气",
+   "tier": "steady",
+   "body": "表演-03-骄傲",
+   "window": [
+    0.5,
+    10.0
+   ],
+   "arm": "正常说话-食指",
+   "face": "—",
+   "note": "Mv2+Mv3 组合，注意双手"
+  },
+  {
+   "intent": "告别",
+   "tier": "steady",
+   "body": "表演-09-沉稳",
+   "window": [
+    10.0,
+    20.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "—",
+   "note": "收尾回中立"
+  },
+  {
+   "intent": "唱歌-主歌",
+   "tier": "steady",
+   "body": "表演-09-沉稳",
+   "window": [
+    0.5,
+    28.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "脸红",
+   "note": "手臂 1:1 搬，换手 0"
+  },
+  {
+   "intent": "唱歌-副歌",
+   "tier": "cozy",
+   "body": "表演-14-撒娇",
+   "window": [
+    0.5,
+    20.0
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "爱心眼",
+   "note": "身段用 14 的节拍，手臂仍只一条"
+  },
+  {
+   "intent": "唱歌-爆点",
+   "tier": "bomb",
+   "body": "表演-13-造型",
+   "window": [
+    2.0,
+    14.0
+   ],
+   "arm": "正常说话-狗尾草",
+   "face": "爱心眼",
+   "note": "只 1 段，前后必须回 steady"
+  },
+  {
+   "intent": "直播冷场",
+   "tier": "steady",
+   "body": "表演-05-重心",
+   "window": [
+    0.0,
+    26.2
+   ],
+   "arm": "正常说话-抚胸",
+   "face": "—",
+   "note": "纯重心八拍，无手臂曲线"
+  }
+ ]
+}
