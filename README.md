@@ -74,7 +74,7 @@ node scripts/make-mv.mjs --song 歌.mp3 --vocal 干声.wav [--lyrics 歌词.lrc]
 
 分步也能跑：`--from mouth|song|push|record|sync` 从任一步续，`--skip-sub` 不出字幕。
 
-- **一首歌一条 motion3、一次触发**。早期按段投递（`sing-play.mjs`）会因为页面时钟提前量让后半段口型对不上，已降级为历史方案，不要再用于出片。
+- **一首歌一条 motion3、一次触发**。早期按段投递的方案会因为页面时钟提前量让后半段口型对不上，代码已删，不要再走那条路。
 - **身体/头/表情**全部来自我们自己的段落预设（`scripts/l2d-song-presets.json`：sway / pose / tilt / lean / look / blink / brow / squint），曲线由 `l2d-compile.mjs` 生成——**不套官方表演片段**。
 - **手臂**由 `l2d-arm.mjs` 自己生成「首段抬手 → 中间段保持（不重抬）→ 末段收回」，姿态常量来自 `dict/l2d-arm-poses.json`（`gen-arm-poses.mjs` 从原片保持段量出的稳态关节值）。`Movement1/2/3` 只会有一个是 1，手掌细分（`Param11`、`Param27–32`）一并推到位，所以抬手不丢姿态、也不会「多一条手臂」。想退回官方原片重映射：`--arm clip`。
 - **口型**从干声算，整首切片后连续（实测 41 段接缝 0 跳变）；静默段补轻微呼吸口型，但只在第一句人声之后补，前奏不会提前动嘴。`--mouth-lead 0.5` 默认补偿 `l2d-song` 包络平滑导致的半秒滞后。
